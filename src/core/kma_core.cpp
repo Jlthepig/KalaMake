@@ -15,7 +15,7 @@
 #include "KalaHeaders/file_utils.hpp"
 #include "KalaHeaders/string_utils.hpp"
 
-#include "core.hpp"
+#include "KalaCLI/include/core.hpp"
 #include "language/kma_language_c_cpp.hpp"
 
 #include "core/kma_core.hpp"
@@ -136,10 +136,10 @@ constexpr string_view build_type_release    = "release";
 constexpr string_view build_type_reldebug   = "reldebug";
 constexpr string_view build_type_minsizerel = "minsizerel";
 
-constexpr string_view binary_type_executable   = "executable";
-constexpr string_view binary_type_link_only    = "link-only";
-constexpr string_view binary_type_runtime_only = "runtime-only";
-constexpr string_view binary_type_link_runtime = "link-runtime";
+constexpr string_view binary_type_executable = "executable";
+constexpr string_view binary_type_static     = "static";
+constexpr string_view binary_type_dynamic    = "dynamic";
+constexpr string_view binary_type_shared     = "shared";
 
 constexpr string_view warning_level_none   = "none";
 constexpr string_view warning_level_basic  = "basic";
@@ -1386,10 +1386,10 @@ namespace KalaMake::Core
 
 	static const unordered_map<BinaryType, string_view, EnumHash<BinaryType>> binaryTypes =
 	{
-		{ BinaryType::B_EXECUTABLE,   binary_type_executable },
-		{ BinaryType::B_LINK_ONLY,    binary_type_link_only },
-		{ BinaryType::B_RUNTIME_ONLY, binary_type_runtime_only },
-		{ BinaryType::B_LINK_RUNTIME, binary_type_link_runtime }
+		{ BinaryType::B_EXECUTABLE, binary_type_executable },
+		{ BinaryType::B_STATIC,     binary_type_static },
+		{ BinaryType::B_DYNAMIC,    binary_type_dynamic },
+		{ BinaryType::B_SHARED,     binary_type_shared }
 	};
 
 	//Same warning types are used for both MSVC and GNU,
@@ -2291,16 +2291,14 @@ void FirstParse(const vector<string>& lines)
 					fields[fieldName] = fieldValues;
 				}
 
-				ProfileData userProfile{};
-
-				userProfile.profileName = value;
+				globalData.targetProfile.profileName = value;
 				if (fields.contains(string(field_binary_type)))
 				{
 					const vector<string>& values = fields[string(field_binary_type)];
 
 					BinaryType result{};
 					StringToEnum(values.front(), KalaMake::Core::binaryTypes, result);
-					userProfile.binaryType = result;
+					globalData.targetProfile.binaryType = result;
 				}
 				if (fields.contains(string(field_compiler)))
 				{
@@ -2308,7 +2306,7 @@ void FirstParse(const vector<string>& lines)
 
 					CompilerType result{};
 					StringToEnum(values.front(), KalaMake::Core::compilerTypes, result);
-					userProfile.compiler = result;
+					globalData.targetProfile.compiler = result;
 				}
 				if (fields.contains(string(field_standard)))
 				{
@@ -2316,11 +2314,11 @@ void FirstParse(const vector<string>& lines)
 
 					StandardType result{};
 					StringToEnum(values.front(), KalaMake::Core::standardTypes, result);
-					userProfile.standard = result;
+					globalData.targetProfile.standard = result;
 				}
 				if (fields.contains(string(field_binary_name)))
 				{
-					userProfile.binaryName = fields[string(field_standard)][0];
+					globalData.targetProfile.binaryName = fields[string(field_binary_name)][0];
 				}
 				if (fields.contains(string(field_build_type)))
 				{
@@ -2328,32 +2326,32 @@ void FirstParse(const vector<string>& lines)
 
 					BuildType result{};
 					StringToEnum(values.front(), KalaMake::Core::buildTypes, result);
-					userProfile.buildType = result;
+					globalData.targetProfile.buildType = result;
 				}
 				if (fields.contains(string(field_build_path)))
 				{
-					userProfile.binaryName = fields[string(field_build_path)][0];
+					globalData.targetProfile.buildPath = fields[string(field_build_path)][0];
 				}
 				if (fields.contains(string(field_sources)))
 				{
 					vector<path> pathResult{};
 					ToPathVector(fields[string(field_sources)], pathResult);
 
-					userProfile.sources = std::move(pathResult);
+					globalData.targetProfile.sources = std::move(pathResult);
 				}
 				if (fields.contains(string(field_headers)))
 				{
 					vector<path> pathResult{};
 					ToPathVector(fields[string(field_headers)], pathResult);
 
-					userProfile.headers = std::move(pathResult);
+					globalData.targetProfile.headers = std::move(pathResult);
 				}
 				if (fields.contains(string(field_links)))
 				{
 					vector<path> pathResult{};
 					ToPathVector(fields[string(field_links)], pathResult);
 
-					userProfile.headers = std::move(pathResult);
+					globalData.targetProfile.links = std::move(pathResult);
 				}
 				if (fields.contains(string(field_warning_level)))
 				{
@@ -2361,19 +2359,19 @@ void FirstParse(const vector<string>& lines)
 
 					WarningLevel result{};
 					StringToEnum(values.front(), KalaMake::Core::warningLevels, result);
-					userProfile.warningLevel = result;
+					globalData.targetProfile.warningLevel = result;
 				}
 				if (fields.contains(string(field_defines)))
 				{
-					userProfile.defines = std::move(fields[string(field_defines)]);
+					globalData.targetProfile.defines = std::move(fields[string(field_defines)]);
 				}
 				if (fields.contains(string(field_flags)))
 				{
-					userProfile.defines = std::move(fields[string(field_flags)]);
+					globalData.targetProfile.flags = std::move(fields[string(field_flags)]);
 				}
 				if (fields.contains(string(field_custom_flags)))
 				{
-					const vector<string>& values = fields[string(field_build_type)];
+					const vector<string>& values = fields[string(field_custom_flags)];
 					vector<CustomFlag> customFlags{};
 
 					for (const auto& cf : values)
@@ -2382,10 +2380,8 @@ void FirstParse(const vector<string>& lines)
 						StringToEnum(cf, KalaMake::Core::customFlags, result);
 						customFlags.push_back(result);
 					}
-					userProfile.customFlags = std::move(customFlags);
+					globalData.targetProfile.customFlags = std::move(customFlags);
 				}
-
-				globalData.targetProfile = std::move(userProfile);
 
 				foundGlobal = true;
 
@@ -2507,7 +2503,7 @@ void FirstParse(const vector<string>& lines)
 				}
 				if (fields.contains(string(field_binary_name)))
 				{
-					globalData.targetProfile.binaryName = fields[string(field_standard)][0];
+					globalData.targetProfile.binaryName = fields[string(field_binary_name)][0];
 				}
 				if (fields.contains(string(field_build_type)))
 				{
@@ -2674,7 +2670,8 @@ void HandleRecursions(GlobalData& data)
 		get_include, 
 		remove_from_vector,
 		dir_to_scripts](
-		vector<path>& fieldValues) -> void
+		vector<path>& fieldValues,
+		bool isHeader) -> void
 		{
 			vector<path> toBeAdded{};
 			vector<path> toBeRemoved{};
@@ -2686,6 +2683,8 @@ void HandleRecursions(GlobalData& data)
 					if (!is_directory(v)) continue;
 					else
 					{
+						if (isHeader) continue;
+
 						path folder = v;
 						toBeRemoved.push_back(v);
 
@@ -2728,17 +2727,24 @@ void HandleRecursions(GlobalData& data)
 						{
 							toBeRemoved.push_back(v);
 
-							vector<path> result = dir_to_scripts(includePath);
+							if (isHeader)
+							{
+								toBeAdded.push_back(includePath);
+							}
+							else
+							{
+								vector<path> result = dir_to_scripts(includePath);
 
-							toBeAdded.insert(
-								toBeAdded.end(),
-								make_move_iterator(result.begin()),
-								make_move_iterator(result.end()));
+								toBeAdded.insert(
+									toBeAdded.end(),
+									make_move_iterator(result.begin()),
+									make_move_iterator(result.end()));
 
-							Log::Print(
-								"Converted folder '" + string(includePath) + "' to '" + to_string(result.size()) + "' scripts.",
-								"KALAMAKE",
-								LogType::LOG_INFO);
+								Log::Print(
+									"Converted folder '" + string(includePath) + "' to '" + to_string(result.size()) + "' paths.",
+									"KALAMAKE",
+									LogType::LOG_INFO);
+							}
 						}
 						else
 						{
@@ -2777,7 +2783,7 @@ void HandleRecursions(GlobalData& data)
 				make_move_iterator(toBeAdded.end()));
 		};
 
-	handle_recursions(data.targetProfile.sources);
-	handle_recursions(data.targetProfile.headers);
-	handle_recursions(data.targetProfile.links);
+	handle_recursions(data.targetProfile.sources, false);
+	handle_recursions(data.targetProfile.headers, true);
+	handle_recursions(data.targetProfile.links, false);
 }

@@ -1,7 +1,7 @@
 #version 1.0
 
 #include
-kh: "_external_shared/KalaHeaders"
+kh: "_external_shared"
 
 #global
 standard: c++20
@@ -10,25 +10,30 @@ binaryname: KalaMake
 sources: "src"
 headers: "include", #kh
 customflags: use-ninja
+warninglevel: normal
 
 #profile debug-windows
 compiler: clang-cl
 buildtype: debug
 buildpath: "build/windows-debug"
+links: "_external_shared/KalaCLI/debug/KalaCLI1d.lib"
 defines: WIN32_LEAN_AND_MEAN, NOMINMAX, UNICODE, _UNICODE
 
 #profile release-windows
 compiler: clang-cl
 buildtype: release
 buildpath: "build/windows-release"
+links: "_external_shared/KalaCLI/debug/KalaCLI1.lib"
 defines: WIN32_LEAN_AND_MEAN, NOMINMAX, UNICODE, _UNICODE
 
 #profile debug-linux
 compiler: clang++
 buildtype: debug
 buildpath: "build/linux-debug"
+links: "_external_shared/KalaCLI/debug/libKalaCLI1d.so"
 
 #profile release-linux
 compiler: clang++
 buildtype: release
 buildpath: "build/linux-release"
+links: "_external_shared/KalaCLI/release/libKalaCLI1.so"

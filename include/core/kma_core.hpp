@@ -202,15 +202,15 @@ namespace KalaMake::Core
 
 		//creates a linkable .lib on MSVC,
 		//creates a linkable .a on GNU
-		B_LINK_ONLY = 2u,
+		B_STATIC = 2u,
 
 		//creates a .dll on MSVC,
 		//creates a .so on GNU
-		B_RUNTIME_ONLY = 3u,
+		B_DYNAMIC = 3u,
 
 		//creates a .dll and a linkable .lib on MSVC,
 		//creates a .so on GNU, same as runtime-only
-		B_LINK_RUNTIME = 4u
+		B_SHARED = 4u
 	};
 
 	//Allowed warning levels that can be added to the warninglevel field

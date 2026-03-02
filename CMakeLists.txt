@@ -86,7 +86,6 @@ target_include_directories(KalaMake PRIVATE
 if (WIN32)
 	# Preprocessor Defines
 	target_compile_definitions(KalaMake PRIVATE 
-		KS_CONTAINER_CONCEPTS # allow string_utils.hpp to enable string-enum conversion
 		WIN32_LEAN_AND_MEAN   # cleaner windows.h
 		NOMINMAX              # skips min/max windows macros in favor of the std variants
 		UNICODE               # selects wide api variants over ansi for UTF16 windows functions
