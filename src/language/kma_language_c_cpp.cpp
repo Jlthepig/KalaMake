@@ -7,10 +7,13 @@
 #include <vector>
 #include <filesystem>
 
+#include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/log_utils.hpp"
 
 #include "language/kma_language_c_cpp.hpp"
 #include "core/kma_core.hpp"
+
+using KalaHeaders::KalaCore::EnumToString;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -70,9 +73,7 @@ namespace KalaMake::Language
 }
 
 void PreCheck(GlobalData& globalData)
-{
-	CompilerType compilerType = globalData.targetProfile.compiler;
-		
+{		
 	StandardType standard = globalData.targetProfile.standard;
 	bool isCLanguage =
 		standard == StandardType::C_89
@@ -185,15 +186,42 @@ void PreCheck(GlobalData& globalData)
 
 void Compile_General(const GlobalData& globalData)
 {
-	//TODO: handle general compilation
-	KalaMakeCore::CloseOnError(
+	Log::Print("\n==========================================================================================\n");
+	
+	string command{};
+
+	string_view compiler{};
+	EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
+	command += string(compiler);
+
+	string sources{};
+	for (const auto& s : globalData.targetProfile.sources)
+	{
+		command += " " + string(s);
+	}
+
+	string headers{};
+	if (!headers.empty())
+	{
+		for (const auto& h : globalData.targetProfile.headers)
+		{
+			command += " " + string(h);
+		}
+	}
+
+	Log::Print(
+		"Output:\n" + command + "\n",
 		"LANGUAGE_C_CPP",
-		"\n@@@@@ reached compile general");
+		LogType::LOG_INFO);
+
+	system(command.c_str());
 }
 void Compile_Static(const GlobalData& globalData)
 {
-	//TODO: handle static compilation
-	KalaMakeCore::CloseOnError(
+	Log::Print("\n==========================================================================================\n");
+
+	Log::Print(
+		"Output:\n@@@@@ reached compile static\n",
 		"LANGUAGE_C_CPP",
-		"\n@@@@@ reached compile static");
+		LogType::LOG_INFO);
 }

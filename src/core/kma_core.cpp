@@ -1553,10 +1553,53 @@ namespace KalaMake::Core
 
 		FirstParse(lines);
 
+		if (globalData.targetProfile.binaryType == BinaryType::B_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No binary type was passed!");
+		}
+		if (globalData.targetProfile.compiler == CompilerType::C_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No compiler was passed!");
+		}
+		if (globalData.targetProfile.standard == StandardType::S_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No standard was passed!");
+		}
+		if (globalData.targetProfile.binaryName.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No binary name was passed!");
+		}
+		if (globalData.targetProfile.buildType == BuildType::B_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No build type was passed!");
+		}
+		if (globalData.targetProfile.buildPath.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No build path was passed!");
+		}
+		if (globalData.targetProfile.sources.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No sources were passed!");
+		}
+
 		Log::Print("\n==========================================================================================\n");
 
 		Log::Print(
-			"Finished first parse! Cleaning up parsed data and parsing for compiler.",
+			"Finished first parse! Cleaning up parsed data and parsing for compiler.\n",
 			"KALAMAKE",
 			LogType::LOG_SUCCESS);
 
@@ -1568,6 +1611,7 @@ namespace KalaMake::Core
 
 		switch (compilerType)
 		{
+			default:
 			case CompilerType::C_CL:
 			case CompilerType::C_CLANG:
 			case CompilerType::C_CLANG_CL:
@@ -1576,12 +1620,6 @@ namespace KalaMake::Core
 			case CompilerType::C_GPP:
 			{
 				Language_C_CPP::Compile(globalData);
-			}
-			default:
-			{
-				CloseOnError(
-					"KALAMAKE", 
-					"Unsupported compiler type passed to compilation!");	
 			}
 		}
 	}
@@ -1592,12 +1630,62 @@ namespace KalaMake::Core
 		SolutionType solutionType)
 	{
 		Log::Print(
-			"Starting to generate a solution from the kalamake file '" + filePath.string() + "'"
+			"Starting to parse the kalamake file '" + filePath.string() + "'"
 			"\n\n==========================================================================================\n",
 			"KALAMAKE",
 			LogType::LOG_INFO);
 
 		FirstParse(lines);
+
+		if (globalData.targetProfile.binaryType == BinaryType::B_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No binary type was passed!");
+		}
+		if (globalData.targetProfile.compiler == CompilerType::C_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No compiler was passed!");
+		}
+		if (globalData.targetProfile.standard == StandardType::S_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No standard was passed!");
+		}
+		if (globalData.targetProfile.binaryName.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No binary name was passed!");
+		}
+		if (globalData.targetProfile.buildType == BuildType::B_INVALID)
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No build type was passed!");
+		}
+		if (globalData.targetProfile.buildPath.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No build path was passed!");
+		}
+		if (globalData.targetProfile.sources.empty())
+		{
+			KalaMakeCore::CloseOnError(
+				"KALAMAKE",
+				"No sources were passed!");
+		}
+
+		Log::Print("\n==========================================================================================\n");
+
+		Log::Print(
+			"Finished first parse! Cleaning up parsed data and parsing for generation.\n",
+			"KALAMAKE",
+			LogType::LOG_SUCCESS);
 
 		HandleRecursions(globalData);
 
@@ -1607,6 +1695,7 @@ namespace KalaMake::Core
 
 		switch (compilerType)
 		{
+			default:
 			case CompilerType::C_CL:
 			case CompilerType::C_CLANG:
 			case CompilerType::C_CLANG_CL:
@@ -1615,12 +1704,6 @@ namespace KalaMake::Core
 			case CompilerType::C_GPP:
 			{
 				Language_C_CPP::Generate(globalData);
-			}
-			default:
-			{
-				CloseOnError(
-					"KALAMAKE", 
-					"Unsupported compiler type passed to generation!");	
 			}
 		}
 	}
