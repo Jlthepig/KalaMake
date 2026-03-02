@@ -38,6 +38,7 @@ using KalaHeaders::KalaFile::ResolveAnyPath;
 using KalaHeaders::KalaFile::ToStringVector;
 using KalaHeaders::KalaFile::ToPathVector;
 using KalaHeaders::KalaFile::PathTarget;
+using KalaHeaders::KalaFile::CreateNewDirectory;
 
 using KalaHeaders::KalaString::SplitString;
 using KalaHeaders::KalaString::ReplaceAfter;
@@ -540,16 +541,33 @@ static void ExtractFieldData(
 			trimmedValue = require_quotes(trimmedValue);
 
 			vector<path> resolvedPaths{};
-			string errorMsg = ResolveAnyPath(
-				trimmedValue, 
-				kmaPath.string(), 
-				resolvedPaths);
-
-			if (!errorMsg.empty())
+			if (trimmedValue.find('*') == string::npos
+				&& !exists(trimmedValue))
 			{
-				KalaMakeCore::CloseOnError(
-					"KALAMAKE",
-					"Build path '" + trimmedValue + "' could not be resolved! Reason: " + errorMsg);
+				string errorMsg = CreateNewDirectory(trimmedValue);
+							
+				if (!errorMsg.empty())
+				{
+					KalaMakeCore::CloseOnError(
+						"KALAMAKE",
+						"Build path '" + trimmedValue + "' could not be created! Reason: " + errorMsg);
+				}
+
+				resolvedPaths = { trimmedValue };
+			}
+			else
+			{
+				string errorMsg = ResolveAnyPath(
+					trimmedValue, 
+					kmaPath.string(), 
+					resolvedPaths);
+
+				if (!errorMsg.empty())
+				{
+					KalaMakeCore::CloseOnError(
+						"KALAMAKE",
+						"Build path '" + trimmedValue + "' could not be resolved! Reason: " + errorMsg);
+				}
 			}
 
 			vector<string> result{};
