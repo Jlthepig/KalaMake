@@ -553,11 +553,12 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				for (const auto& l : globalData.targetProfile.links)
 				{
-					string linkArg = l.string().find('.') == string::npos
-						? frontArg + 'l'
-						: string{};
-
-					command += " " + linkArg + "\"" + l.string() + "\"";
+					if (path(l).has_extension()) command += " \"" + l.string() + "\"";
+					else
+					{
+						if (isMSVC) command += " " + l.string() + ".lib";
+						else        command += " -l" + l.string();
+					}
 				}
 			}
 

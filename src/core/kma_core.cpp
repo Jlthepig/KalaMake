@@ -764,20 +764,20 @@ static void ExtractFieldData(
 				}
 				else
 				{
-					if (!trimmedLine.ends_with(".so")
-						&& !trimmedLine.ends_with(".a")
-						&& !trimmedLine.ends_with(".lib"))
+#ifdef __linux__
+					if (trimmedLine.starts_with("lib"))
 					{
 						KalaMakeCore::CloseOnError(
 							"KALAMAKE",
-							"Link literal path '" + trimmedLine + "' does not have an extension!");
+							"Link system path '" + trimmedLine + "' must not start with 'lib'!");
 					}
+#endif
 
-					if (trimmedLine.find('+') != string::npos)
+					if (path(trimmedLine).has_extension())
 					{
 						KalaMakeCore::CloseOnError(
 							"KALAMAKE",
-							"Link literal path '" + trimmedLine + "' is not allowed to append values!");
+							"Link system path '" + trimmedLine + "' is not allowed to use extensions!");
 					}
 
 					return { trimmedLine };
