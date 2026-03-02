@@ -15,5 +15,6 @@ namespace KalaMake::Language
 	{
 	public:
 		static void Compile(GlobalData& globalData);
+		static void Generate(GlobalData& globalData);
 	};
 }

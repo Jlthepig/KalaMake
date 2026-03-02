@@ -67,9 +67,11 @@ using std::filesystem::current_path;
 using std::filesystem::weakly_canonical;
 using std::filesystem::is_directory;
 using std::filesystem::is_regular_file;
+using std::filesystem::recursive_directory_iterator;
 using std::filesystem::filesystem_error;
 using std::string;
 using std::string_view;
+using std::to_string;
 using std::vector;
 using std::unordered_map;
 using std::count;
@@ -1566,7 +1568,6 @@ namespace KalaMake::Core
 
 		switch (compilerType)
 		{
-			default:
 			case CompilerType::C_CL:
 			case CompilerType::C_CLANG:
 			case CompilerType::C_CLANG_CL:
@@ -1576,9 +1577,13 @@ namespace KalaMake::Core
 			{
 				Language_C_CPP::Compile(globalData);
 			}
+			default:
+			{
+				CloseOnError(
+					"KALAMAKE", 
+					"Unsupported compiler type passed to compilation!");	
+			}
 		}
-
-		//TODO: finish setting up
 	}
 
 	void KalaMakeCore::Generate(
@@ -1598,7 +1603,26 @@ namespace KalaMake::Core
 
 		CleanFoundFlags();
 
-		//TODO: finish setting up
+		CompilerType compilerType = globalData.targetProfile.compiler;
+
+		switch (compilerType)
+		{
+			case CompilerType::C_CL:
+			case CompilerType::C_CLANG:
+			case CompilerType::C_CLANG_CL:
+			case CompilerType::C_CLANGPP:
+			case CompilerType::C_GCC:
+			case CompilerType::C_GPP:
+			{
+				Language_C_CPP::Generate(globalData);
+			}
+			default:
+			{
+				CloseOnError(
+					"KALAMAKE", 
+					"Unsupported compiler type passed to generation!");	
+			}
+		}
 	}
 
 	bool KalaMakeCore::ResolveFieldReference(
@@ -2532,33 +2556,145 @@ void FirstParse(const vector<string>& lines)
 
 void HandleRecursions(GlobalData& data)
 {
-	auto handle_recursions = [&data](string_view fieldName, vector<string>& fieldValues) -> void
+	auto dir_to_scripts = [](const path& dir) -> vector<path>
 		{
-			for (const auto& v : fieldValues)
+			vector<path> out{};
+
+			for (const auto& f : recursive_directory_iterator(dir))
 			{
-				if (!v.starts_with('#')) continue;
+				if (is_regular_file(f)) out.push_back(f);
+			}
 
-				size_t hashCount = count(v.begin(), v.end(), '#');
+			return out;
+		};
 
-				if (hashCount == 2)
+	auto remove_from_vector = [](vector<path>& scripts, path value) -> void
+		{
+			for (auto it = scripts.begin(); it != scripts.end();)
+			{
+				if (*it == value) scripts.erase(it);
+				else ++it;
+			}
+		};
+
+	auto get_include = [&data](string_view fieldName) -> path
+		{
+			for (const auto& i : data.includes)
+			{
+				if (i.name == fieldName) return i.value;
+			}
+
+			return path{};
+		};
+
+	auto handle_recursions = [
+		get_include, 
+		remove_from_vector,
+		dir_to_scripts](
+		vector<path>& fieldValues) -> void
+		{
+			vector<path> toBeAdded{};
+			vector<path> toBeRemoved{};
+
+			for (path& v : fieldValues)
+			{
+				if (!string(v).starts_with('#'))
 				{
-					KalaMakeCore::CloseOnError(
-						"KALAMAKE",
-						"Field '" + string(fieldName) + "' value '" + v + "' cannot reference a category!");
+					if (!is_directory(v)) continue;
+					else
+					{
+						path folder = v;
+						toBeRemoved.push_back(v);
+
+						vector<path> result = dir_to_scripts(folder);
+
+						toBeAdded.insert(
+							toBeAdded.end(),
+							make_move_iterator(result.begin()),
+							make_move_iterator(result.end()));
+
+						Log::Print(
+							"Converted folder '" + string(folder) + "' to '" + to_string(result.size()) + "' scripts.",
+							"KALAMAKE",
+							LogType::LOG_INFO);
+					}
+					continue;
 				}
-				if (hashCount > 3)
+
+				string vstr = v.string();
+
+				if (!vstr.starts_with('#')) continue;
+
+				size_t hashCount = count(vstr.begin(), vstr.end(), '#');
+
+				if (hashCount > 2)
 				{
 					KalaMakeCore::CloseOnError(
 						"KALAMAKE",
-						"Field '" + string(fieldName) + "' value '" + v + "' cannot go deeper than three references!");
+						"Field value '" + vstr + "' may only have one or two hash symbols!");
 				}
 
 				if (hashCount == 1)
 				{
-					
-				}
+					vstr.erase(0, 1); //erase hash at the start
+					path includePath = get_include(vstr);
 
-				//TODO: finish setting up
+					if (!includePath.empty())
+					{
+						if (is_directory(includePath))
+						{
+							toBeRemoved.push_back(v);
+
+							vector<path> result = dir_to_scripts(includePath);
+
+							toBeAdded.insert(
+								toBeAdded.end(),
+								make_move_iterator(result.begin()),
+								make_move_iterator(result.end()));
+
+							Log::Print(
+								"Converted folder '" + string(includePath) + "' to '" + to_string(result.size()) + "' scripts.",
+								"KALAMAKE",
+								LogType::LOG_INFO);
+						}
+						else
+						{
+							v = includePath;
+
+							Log::Print(
+								"Converted to path '" + string(v) + "'",
+								"KALAMAKE",
+								LogType::LOG_INFO);
+						}
+					}
+					else
+					{
+						KalaMakeCore::CloseOnError(
+							"KALAMAKE",
+							"Value '" + string(v) + "' could not be converted!");
+					}
+				}
+				else if (hashCount == 2)
+				{
+					//TODO: handle hash count 2
+					KalaMakeCore::CloseOnError(
+						"KALAMAKE",
+						"\n@@@@@ reached hash count 2");
+				}
 			}
+
+			for (auto& value : toBeRemoved)
+			{
+				remove_from_vector(fieldValues, value);
+			}
+
+			fieldValues.insert(
+				fieldValues.end(),
+				make_move_iterator(toBeAdded.begin()),
+				make_move_iterator(toBeAdded.end()));
 		};
+
+	handle_recursions(data.targetProfile.sources);
+	handle_recursions(data.targetProfile.headers);
+	handle_recursions(data.targetProfile.links);
 }
