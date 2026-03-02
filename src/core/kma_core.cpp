@@ -138,7 +138,6 @@ constexpr string_view build_type_minsizerel = "minsizerel";
 
 constexpr string_view binary_type_executable = "executable";
 constexpr string_view binary_type_static     = "static";
-constexpr string_view binary_type_dynamic    = "dynamic";
 constexpr string_view binary_type_shared     = "shared";
 
 constexpr string_view warning_level_none   = "none";
@@ -1388,7 +1387,6 @@ namespace KalaMake::Core
 	{
 		{ BinaryType::B_EXECUTABLE, binary_type_executable },
 		{ BinaryType::B_STATIC,     binary_type_static },
-		{ BinaryType::B_DYNAMIC,    binary_type_dynamic },
 		{ BinaryType::B_SHARED,     binary_type_shared }
 	};
 

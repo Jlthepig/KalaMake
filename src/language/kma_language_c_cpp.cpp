@@ -9,6 +9,7 @@
 
 #include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/log_utils.hpp"
+#include "KalaHeaders/file_utils.hpp"
 
 #include "language/kma_language_c_cpp.hpp"
 #include "core/kma_core.hpp"
@@ -18,6 +19,8 @@ using KalaHeaders::KalaCore::RemoveDuplicates;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
+
+using KalaHeaders::KalaFile::CreateNewDirectory;
 
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
@@ -35,11 +38,13 @@ using std::filesystem::path;
 using std::filesystem::exists;
 using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
+using std::filesystem::last_write_time;
 
 static void PreCheck(GlobalData& globalData);
 
-static void Compile_General(const GlobalData& globalData);
-static void Compile_Static(const GlobalData& globalData);
+static void Compile_Final(const GlobalData& globalData);
+
+static string_view objFolderName = "obj";
 
 namespace KalaMake::Language
 {
@@ -56,16 +61,7 @@ namespace KalaMake::Language
 
 		BinaryType binaryType = globalData.targetProfile.binaryType;
 
-		//continue to static lib compilation function
-		//since its very different from exe and shared and dynamic lib
-		if (binaryType == BinaryType::B_STATIC)
-		{	
-			Compile_Static(globalData);
-			return;
-		}
-
-		//regular compilation for executable, shared and dynamic binaries
-		Compile_General(globalData);
+		Compile_Final(globalData);
 	}
 
 	void Language_C_CPP::Generate(GlobalData& globalData)
@@ -183,254 +179,420 @@ void PreCheck(GlobalData& globalData)
 	}
 }
 
-void Compile_General(const GlobalData& globalData)
+void Compile_Final(const GlobalData& globalData)
 {
-	Log::Print("\n==========================================================================================\n");
-
-	bool isCL = globalData.targetProfile.compiler == CompilerType::C_CL;
-
-	string frontArg = isCL
-		? "/"
-		: "-";
-	
-	string command{};
-
-	//set compiler
-
-	string_view compiler{};
-	EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
-	command += string(compiler);
-
-	//set standard
-
-	string_view standard{};
-	EnumToString(globalData.targetProfile.standard, KalaMakeCore::GetStandardTypes(), standard);
-
-	string standardArg = isCL
-		? frontArg + "std:"
-		: frontArg + "std=";
-
-	command += " " + standardArg + string(standard);
-
-	//set output
-
-	string outputArg = isCL
-		? frontArg + "Fe:"
-		: frontArg + "o ";
-
-	path buildPath = globalData.targetProfile.buildPath;
-	string binaryName = globalData.targetProfile.binaryName;
-
-	string extension{};
-	if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
-	{
-#ifdef _WIN32
-		if (!binaryName.ends_with(".exe")) extension = ".exe";
-#endif
-	}
-	else if (globalData.targetProfile.binaryType == BinaryType::B_SHARED
-			 || globalData.targetProfile.binaryType == BinaryType::B_DYNAMIC)
-	{
-#ifdef _WIN32
-		if (!binaryName.ends_with(".dll")) extension = ".dll";
-#else
-		if (!binaryName.ends_with(".so")) extension = ".so";
-#endif
-	}
-
-	command += " " + outputArg + "\"" + path(buildPath / string(binaryName + extension)).string() + "\"";
-
-	//set defines
-
-	string defineArg = frontArg + "D";
-
-	for (const auto& d : globalData.targetProfile.defines)
-	{
-		command += " " + defineArg + d;
-	}
-
-	//set flags and warning level
-
-	vector<string> finalFlags = globalData.targetProfile.flags;
-
-	switch (globalData.targetProfile.buildType)
-	{
-	case BuildType::B_DEBUG:
-	{
-		if (isCL)
-		{
-			finalFlags.push_back("Zi");
-			finalFlags.push_back("Od");
-		}
-		else
-		{
-			finalFlags.push_back("g");
-			finalFlags.push_back("O0");
-		}
-		break;
-	}
-	case BuildType::B_RELEASE:
-	{
-		finalFlags.push_back("O2");
-		break;
-	}
-	case BuildType::B_RELDEBUG:
-	{
-		if (isCL)
-		{
-			finalFlags.push_back("Zi");
-			finalFlags.push_back("O2");
-		}
-		else
-		{
-			finalFlags.push_back("g");
-			finalFlags.push_back("O2");
-		}
-		break;
-	}
-	case BuildType::B_MINSIZEREL:
-	{
-		if (isCL) finalFlags.push_back("O1");
-		else      finalFlags.push_back("Os");
-	}
-
-	default: break;
-	}
-
 	bool isMSVC = 
-		isCL
+		globalData.targetProfile.compiler == CompilerType::C_CL
 		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL;
 
-	switch (globalData.targetProfile.warningLevel)
-	{
-	case WarningLevel::W_BASIC:
-	{
-		if (isMSVC) finalFlags.push_back("W1");
-		else        finalFlags.push_back("Wall");
-		break;
-	}
-	case WarningLevel::W_NORMAL:
-	{
-		if (isMSVC) finalFlags.push_back("W3");
-		else
-		{
-			finalFlags.push_back("Wall");
-			finalFlags.push_back("Wextra");
-		}
-		break;
-	}
-	case WarningLevel::W_STRONG:
-	{
-		if (isMSVC) finalFlags.push_back("W4");
-		else
-		{
-			finalFlags.push_back("Wall");
-			finalFlags.push_back("Wextra");
-			finalFlags.push_back("Wpedantic");
-		}
-		break;
-	}
-	case WarningLevel::W_STRICT:
-	{
-		if (isMSVC)
-		{
-			finalFlags.push_back("W4");
-			finalFlags.push_back("permissive-");
-		}
-		else
-		{
-			finalFlags.push_back("Wall");
-			finalFlags.push_back("Wextra");
-			finalFlags.push_back("Wpedantic");
-			finalFlags.push_back("Wconversion");
-			finalFlags.push_back("Wsign-conversion");
-		}
-		break;
-	}
-	case WarningLevel::W_ALL:
-	{
-		if (isMSVC) finalFlags.push_back("Wall");
-		else if (globalData.targetProfile.compiler == CompilerType::C_CLANG
-				 || globalData.targetProfile.compiler == CompilerType::C_CLANGPP)
-		{
-			finalFlags.push_back("Weverything");
-		}
-		else
-		{
-			finalFlags.push_back("Wall");
-			finalFlags.push_back("Wextra");
-			finalFlags.push_back("Wpedantic");
-			finalFlags.push_back("Wconversion");
-			finalFlags.push_back("Wsign-conversion");
-		}
-		break;
-	}
+	string frontArg = isMSVC
+		? "/"
+		: "-";
 
-	default: break;
-	}
-
-	RemoveDuplicates(finalFlags);
-	for (const auto& f : finalFlags)
-	{
-		command += " " + frontArg + f;
-	}
-
-	//set sources
-
-	for (const auto& s : globalData.targetProfile.sources)
-	{
-		command += " " + string(s);
-	}
-
-	//set headers
-
-	if (!globalData.targetProfile.headers.empty())
-	{
-		for (const auto& h : globalData.targetProfile.headers)
+	auto compile = [&isMSVC, &frontArg, &globalData]() -> vector<path>
 		{
-			command += " " + frontArg + "I\"" + h.string() + "\"";
-		}
-	}
+			vector<path> compiledObj{};
 
-	//set links
+			string command{};
 
-	if (!globalData.targetProfile.links.empty())
-	{
-		for (const auto& l : globalData.targetProfile.links)
+			//set compiler
+
+			string_view compiler{};
+			EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
+			command += string(compiler);
+
+			//set standard
+
+			string_view standard{};
+			EnumToString(globalData.targetProfile.standard, KalaMakeCore::GetStandardTypes(), standard);
+
+			string standardArg = isMSVC
+				? frontArg + "std:"
+				: frontArg + "std=";
+
+			command += " " + standardArg + string(standard);
+
+			//set flags and warning level
+
+			vector<string> finalFlags = globalData.targetProfile.flags;
+
+			switch (globalData.targetProfile.buildType)
+			{
+			case BuildType::B_DEBUG:
+			{
+				if (isMSVC)
+				{
+					finalFlags.push_back("Zi");
+					finalFlags.push_back("Od");
+				}
+				else
+				{
+					finalFlags.push_back("g");
+					finalFlags.push_back("O0");
+				}
+				break;
+			}
+			case BuildType::B_RELEASE:
+			{
+				finalFlags.push_back("O2");
+				break;
+			}
+			case BuildType::B_RELDEBUG:
+			{
+				if (isMSVC)
+				{
+					finalFlags.push_back("Zi");
+					finalFlags.push_back("O2");
+				}
+				else
+				{
+					finalFlags.push_back("g");
+					finalFlags.push_back("O2");
+				}
+				break;
+			}
+			case BuildType::B_MINSIZEREL:
+			{
+				if (isMSVC) finalFlags.push_back("O1");
+				else      finalFlags.push_back("Os");
+			}
+
+			default: break;
+			}
+
+			switch (globalData.targetProfile.warningLevel)
+			{
+			case WarningLevel::W_BASIC:
+			{
+				if (isMSVC) finalFlags.push_back("W1");
+				else        finalFlags.push_back("Wall");
+				break;
+			}
+			case WarningLevel::W_NORMAL:
+			{
+				if (isMSVC) finalFlags.push_back("W3");
+				else
+				{
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+				}
+				break;
+			}
+			case WarningLevel::W_STRONG:
+			{
+				if (isMSVC) finalFlags.push_back("W4");
+				else
+				{
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
+				}
+				break;
+			}
+			case WarningLevel::W_STRICT:
+			{
+				if (isMSVC)
+				{
+					finalFlags.push_back("W4");
+					finalFlags.push_back("permissive-");
+				}
+				else
+				{
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
+					finalFlags.push_back("Wconversion");
+					finalFlags.push_back("Wsign-conversion");
+				}
+				break;
+			}
+			case WarningLevel::W_ALL:
+			{
+				if (isMSVC) finalFlags.push_back("Wall");
+				else if (globalData.targetProfile.compiler == CompilerType::C_CLANG
+						|| globalData.targetProfile.compiler == CompilerType::C_CLANGPP)
+				{
+					finalFlags.push_back("Weverything");
+				}
+				else
+				{
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
+					finalFlags.push_back("Wconversion");
+					finalFlags.push_back("Wsign-conversion");
+				}
+				break;
+			}
+
+			default: break;
+			}
+
+			RemoveDuplicates(finalFlags);
+			for (const auto& f : finalFlags)
+			{
+				command += " " + frontArg + f;
+			}
+
+			//set defines
+
+			string defineArg = frontArg + "D";
+
+			for (const auto& d : globalData.targetProfile.defines)
+			{
+				command += " " + defineArg + d;
+			}
+
+			//set headers
+
+			if (!globalData.targetProfile.headers.empty())
+			{
+				for (const auto& h : globalData.targetProfile.headers)
+				{
+					command += " " + frontArg + "I\"" + h.string() + "\"";
+				}
+			}
+
+			//compile
+
+			path buildPath = globalData.targetProfile.buildPath / objFolderName;
+
+			if (!exists(buildPath))
+			{
+				string errorMsg = CreateNewDirectory(buildPath);
+				if (!errorMsg.empty())
+				{
+					KalaMakeCore::CloseOnError(
+						"LANGUAGE_C_CPP",
+						"Failed to create new obj dir for compilation! Reason: " + errorMsg);
+				}
+			}
+
+			string binaryName = globalData.targetProfile.binaryName;
+
+			string extension = isMSVC
+				? ".obj"
+				: ".o";
+
+			//compile-time shared flag for object file
+			if (!isMSVC
+				&& globalData.targetProfile.binaryType == BinaryType::B_SHARED)
+			{
+				command += " -fPIC";
+			}
+
+			command += " " + frontArg + "c";
+			string objFront = isMSVC
+				? "/Fo:"
+				: "-o ";
+
+			auto needs_compile = [](
+				const path& source,
+				const path& object
+				) -> bool
+				{
+					return 
+						!exists(object)
+						|| last_write_time(source) > last_write_time(object);
+				};
+
+			for (const auto& s : globalData.targetProfile.sources)
+			{
+				path objPath = buildPath / (s.stem().string() + extension);
+				
+				string perFileCommand = command;
+
+				perFileCommand += " \"" + s.string() + "\"";
+				perFileCommand += " " + objFront + " \"" + objPath.string() + "\"";
+
+				Log::Print("\n==========================================================================================\n");
+
+				//only recompile this object file when source and object timestamp differences occur
+				if (needs_compile(s, objPath))
+				{
+					Log::Print(
+						"Starting to compile via '" + perFileCommand + "'.",
+						"LANGUAGE_C_CPP",
+						LogType::LOG_INFO);
+
+					if (system(perFileCommand.c_str()) != 0)
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_C_CPP",
+							"Failed to compile object file '" + objPath.string() + "'!");
+					}
+				}
+				else
+				{
+					Log::Print(
+						"Skipping compilation of existing object file '" + objPath.string() + "'.",
+						"LANGUAGE_C_CPP",
+						LogType::LOG_INFO);
+				}
+
+				compiledObj.push_back(objPath);
+			}
+
+			return compiledObj;
+		};
+
+	auto link = [&isMSVC, &frontArg, &globalData](const vector<path>& objFiles) -> void
 		{
-			string linkArg = l.string().find('.') == string::npos
-				? frontArg + 'l'
+			string sharedArg = globalData.targetProfile.binaryType == BinaryType::B_SHARED
+				? (isMSVC ? "/LD" : "-shared")
 				: string{};
 
-			command += " " + linkArg + "\"" + l.string() + "\"";
-		}
-	}
+			string command{};
 
-	//compile
+			//set compiler
 
-	Log::Print(
-		"Output:\n" + command + "\n",
-		"LANGUAGE_C_CPP",
-		LogType::LOG_INFO);
+			string_view compiler{};
+			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE
+				|| globalData.targetProfile.binaryType == BinaryType::B_SHARED)
+			{
+				EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
+			}
+			else
+			{
+#ifdef _WIN32
+				compiler = "lib";
+#else
+				compiler = "ar rcs";
+#endif
+			}
+			command += string(compiler);
 
-	system(command.c_str());
+#ifdef __linux__
+			//set current dir .so flags for linux
+			command += " -Wl,-rpath,'$ORIGIN'";
+#endif
 
-	Log::Print(
-		"Finished compilation!",
-		"LANGUAGE_C_CPP",
-		LogType::LOG_SUCCESS);
-}
-void Compile_Static(const GlobalData& globalData)
-{
-	Log::Print("\n==========================================================================================\n");
+			//set output
 
-	Log::Print(
-		"Output:\n@@@@@ reached compile static\n",
-		"LANGUAGE_C_CPP",
-		LogType::LOG_INFO);
+			string outputArgFront{};
+			string outputArg{};
 
-	Log::Print(
-		"Finished generation!",
-		"LANGUAGE_C_CPP",
-		LogType::LOG_SUCCESS);
+			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE
+				|| globalData.targetProfile.binaryType == BinaryType::B_SHARED)
+			{
+				//link-time shared flag for output
+				outputArgFront = globalData.targetProfile.binaryType == BinaryType::B_SHARED
+					? (isMSVC ? "/LD " : "-shared " )
+					: string{};
+
+				outputArg = isMSVC
+					? "/Fe:"
+					: "-o ";
+			}
+			else
+			{
+				if (isMSVC) outputArg = "/OUT:";
+			}
+
+			path buildPath = globalData.targetProfile.buildPath;
+			string binaryName = globalData.targetProfile.binaryName;
+
+			string extension{};
+			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
+			{
+#ifdef _WIN32
+				if (!binaryName.ends_with(".exe")) extension = ".exe";
+#endif
+			}
+			else if (globalData.targetProfile.binaryType == BinaryType::B_SHARED)
+			{
+#ifdef _WIN32
+				if (!binaryName.ends_with(".dll")) extension = ".dll";
+#else
+				if (!binaryName.ends_with(".so")) extension = ".so";
+#endif
+			}
+			else if (globalData.targetProfile.binaryType == BinaryType::B_STATIC)
+			{
+#ifdef _WIN32
+				if (!binaryName.ends_with(".lib")) extension = ".lib";
+#else
+				if (!binaryName.ends_with(".a")) extension = ".a";
+#endif
+			}
+
+			path outputPath = path(buildPath / string(binaryName + extension));
+
+			command += " " + outputArgFront + outputArg + "\"" + outputPath.string() + "\"";
+
+			auto needs_link = [](
+				const path& output,
+				const vector<path>& objects
+				) -> bool
+				{
+					if (!exists(output)) return true;
+
+					auto exeTime = last_write_time(output);
+
+					for (const auto& o : objects)
+					{
+						if (!exists(o)
+							|| last_write_time(o) > exeTime)
+						{
+							return true;
+						}
+					}
+
+					return false;
+				};
+
+			//add object files
+			for (const auto& o : objFiles)
+			{
+				command += " \"" + o.string() + "\"";
+			}
+
+			//set links
+
+			if (!globalData.targetProfile.links.empty())
+			{
+				for (const auto& l : globalData.targetProfile.links)
+				{
+					string linkArg = l.string().find('.') == string::npos
+						? frontArg + 'l'
+						: string{};
+
+					command += " " + linkArg + "\"" + l.string() + "\"";
+				}
+			}
+
+			Log::Print("\n==========================================================================================\n");
+
+			if (needs_link(outputPath, objFiles))
+			{
+				Log::Print(
+					"Starting to link via '" + command + "'.",
+					"LANGUAGE_C_CPP",
+					LogType::LOG_INFO);
+
+				if (system(command.c_str()) != 0)
+				{
+					KalaMakeCore::CloseOnError(
+						"LANGUAGE_C_CPP",
+						"Failed to link '" + outputPath.string() + "'!");
+				}
+
+				Log::Print("\n");
+
+				Log::Print(
+					"Finished linking to output '" + outputPath.string() + "'!",
+					"LANGUAGE_C_CPP",
+					LogType::LOG_SUCCESS);	
+			}
+			else
+			{
+				Log::Print(
+					"Skipping linking of up to date output '" + outputPath.string() + "'.",
+					"LANGUAGE_C_CPP",
+					LogType::LOG_INFO);
+			}
+			};
+
+	vector<path> objFiles = compile();
+	if (!objFiles.empty()) link(objFiles);
 }
