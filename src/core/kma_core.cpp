@@ -16,7 +16,7 @@
 #include "KalaHeaders/string_utils.hpp"
 
 #include "KalaCLI/include/core.hpp"
-#include "language/kma_language_c_cpp.hpp"
+#include "language/kma_language.hpp"
 
 #include "core/kma_core.hpp"
 
@@ -59,7 +59,7 @@ using KalaMake::Core::BuildType;
 using KalaMake::Core::BinaryType;
 using KalaMake::Core::WarningLevel;
 using KalaMake::Core::CustomFlag;
-using KalaMake::Language::Language_C_CPP;
+using KalaMake::Language::LanguageCore;
 
 using std::ostringstream;
 using std::filesystem::exists;
@@ -1623,21 +1623,7 @@ namespace KalaMake::Core
 
 		CleanFoundFlags();
 
-		CompilerType compilerType = globalData.targetProfile.compiler;
-
-		switch (compilerType)
-		{
-			default:
-			case CompilerType::C_CL:
-			case CompilerType::C_CLANG:
-			case CompilerType::C_CLANG_CL:
-			case CompilerType::C_CLANGPP:
-			case CompilerType::C_GCC:
-			case CompilerType::C_GPP:
-			{
-				Language_C_CPP::Compile(globalData);
-			}
-		}
+		LanguageCore::Compile(globalData);
 	}
 
 	void KalaMakeCore::Generate(
@@ -1707,21 +1693,7 @@ namespace KalaMake::Core
 
 		CleanFoundFlags();
 
-		CompilerType compilerType = globalData.targetProfile.compiler;
-
-		switch (compilerType)
-		{
-			default:
-			case CompilerType::C_CL:
-			case CompilerType::C_CLANG:
-			case CompilerType::C_CLANG_CL:
-			case CompilerType::C_CLANGPP:
-			case CompilerType::C_GCC:
-			case CompilerType::C_GPP:
-			{
-				Language_C_CPP::Generate(globalData);
-			}
-		}
+		LanguageCore::Generate(globalData);
 	}
 
 	bool KalaMakeCore::ResolveFieldReference(

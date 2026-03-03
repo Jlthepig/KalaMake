@@ -11,7 +11,7 @@ namespace KalaMake::Language
 {
 	using KalaMake::Core::GlobalData;
 
-	class Language_C_CPP
+	class LanguageCore
 	{
 	public:
 		static void Compile(GlobalData& globalData);

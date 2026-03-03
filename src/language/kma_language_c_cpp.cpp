@@ -11,7 +11,7 @@
 #include "KalaHeaders/log_utils.hpp"
 #include "KalaHeaders/file_utils.hpp"
 
-#include "language/kma_language_c_cpp.hpp"
+#include "language/kma_language.hpp"
 #include "core/kma_core.hpp"
 
 using KalaHeaders::KalaCore::EnumToString;
@@ -43,6 +43,7 @@ using std::filesystem::last_write_time;
 static void PreCheck(GlobalData& globalData);
 
 static void Compile_Final(const GlobalData& globalData);
+static void Generate_Final(const GlobalData& globalData);
 
 static string_view objFolderName = "obj";
 
@@ -55,18 +56,38 @@ namespace KalaMake::Language
 
 	static path foundCLPath{};
 
-	void Language_C_CPP::Compile(GlobalData& globalData)
+	void LanguageCore::Compile(GlobalData& globalData)
 	{
+		CompilerType c = globalData.targetProfile.compiler;
+		if (c != CompilerType::C_CL
+			&& c != CompilerType::C_CLANG_CL
+			&& c != CompilerType::C_CLANG
+			&& c != CompilerType::C_CLANGPP
+			&& c != CompilerType::C_GCC
+			&& c != CompilerType::C_GPP)
+		{
+			return;
+		}
+
 		PreCheck(globalData);
-
-		BinaryType binaryType = globalData.targetProfile.binaryType;
-
 		Compile_Final(globalData);
 	}
 
-	void Language_C_CPP::Generate(GlobalData& globalData)
+	void LanguageCore::Generate(GlobalData& globalData)
 	{
+		CompilerType c = globalData.targetProfile.compiler;
+		if (c != CompilerType::C_CL
+			&& c != CompilerType::C_CLANG_CL
+			&& c != CompilerType::C_CLANG
+			&& c != CompilerType::C_CLANGPP
+			&& c != CompilerType::C_GCC
+			&& c != CompilerType::C_GPP)
+		{
+			return;
+		}
+
 		PreCheck(globalData);
+		Generate_Final(globalData);
 	}
 }
 
@@ -463,8 +484,11 @@ void Compile_Final(const GlobalData& globalData)
 			command += string(compiler);
 
 #ifdef __linux__
-			//set current dir .so flags for linux
-			command += " -Wl,-rpath,'$ORIGIN'";
+			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
+			{
+				//set current dir .so flags for linux
+				command += " -Wl,-rpath,'$ORIGIN'";
+			}
 #endif
 
 			//set output
@@ -596,4 +620,9 @@ void Compile_Final(const GlobalData& globalData)
 
 	vector<path> objFiles = compile();
 	if (!objFiles.empty()) link(objFiles);
+}
+
+void Generate_Final(const GlobalData& globalData)
+{
+	
 }

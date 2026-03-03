@@ -11,7 +11,6 @@ binarytype: executable
 binaryname: kalamake
 sources: "src"
 headers: "include", #kh
-customflags: use-ninja
 warninglevel: normal
 
 #profile debug-windows
