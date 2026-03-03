@@ -1,3 +1,5 @@
+//Build script for use with kalamake. Read more at https://github.com/kalakit/kalamake
+
 #version 1.0
 
 #include
@@ -6,7 +8,7 @@ kh: "_external_shared"
 #global
 standard: c++20
 binarytype: executable
-binaryname: KalaMake
+binaryname: kalamake
 sources: "src"
 headers: "include", #kh
 customflags: use-ninja
@@ -15,23 +17,23 @@ warninglevel: normal
 #profile debug-windows
 compiler: clang-cl
 buildtype: debug
-buildpath: "build/windows-debug"
+buildpath: "build/debug-windows"
 links: "_external_shared/KalaCLI/debug/KalaCLI1d.lib"
 
 #profile release-windows
 compiler: clang-cl
 buildtype: release
-buildpath: "build/windows-release"
-links: "_external_shared/KalaCLI/debug/KalaCLI1.lib"
+buildpath: "build/release-windows"
+links: "_external_shared/KalaCLI/release/KalaCLI1.lib"
 
 #profile debug-linux
 compiler: clang++
 buildtype: debug
-buildpath: "build/linux-debug"
+buildpath: "build/debug-linux"
 links: "_external_shared/KalaCLI/debug/libKalaCLI1d.so"
 
 #profile release-linux
 compiler: clang++
 buildtype: release
-buildpath: "build/linux-release"
+buildpath: "build/release-linux"
 links: "_external_shared/KalaCLI/release/libKalaCLI1.so"
