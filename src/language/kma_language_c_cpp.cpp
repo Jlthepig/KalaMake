@@ -800,7 +800,7 @@ void Compile_Final(const GlobalData& globalData)
 
 			//link 
 
-			auto needs_link = [](
+			auto needs_link = [&globalData](
 				const path& output,
 				const vector<path>& objects
 				) -> bool
@@ -816,6 +816,11 @@ void Compile_Final(const GlobalData& globalData)
 						{
 							return true;
 						}
+					}
+
+					for (const auto& l : globalData.targetProfile.links)
+					{
+						if (last_write_time(l) > exeTime) return true;
 					}
 
 					return false;
