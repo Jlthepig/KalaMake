@@ -27,6 +27,7 @@ using KalaMake::Language::GlobalData;
 using KalaMake::Core::BinaryType;
 using KalaMake::Core::CompilerType;
 using KalaMake::Core::StandardType;
+using KalaMake::Core::TargetType;
 using KalaMake::Core::BuildType;
 using KalaMake::Core::WarningLevel;
 using KalaMake::Core::CustomFlag;
@@ -45,21 +46,26 @@ static void PreCheck(GlobalData& globalData);
 static void Compile_Final(const GlobalData& globalData);
 static void Generate_Final(const GlobalData& globalData);
 
-static string_view objFolderName = "obj";
+constexpr string_view objFolderName = "obj";
+
+constexpr string_view gcc_compiler_windows_to_linux = "x86_64-linux-gnu-gcc";
+constexpr string_view gcc_compiler_linux_to_windows = "x86_64-w64-mingw32-gcc";
+constexpr string_view gpp_compiler_windows_to_linux = "x86_64-linux-gnu-g++";
+constexpr string_view gpp_compiler_linux_to_windows = "x86_64-w64-mingw32-g++";
+
+constexpr string_view clang_zig_target_windows_to_linux = "x86_64-linux-gnu";
+//used by default for clang linux-to-windows
+constexpr string_view clang_zig_target_linux_to_windows_gnu = "x86_64-windows-gnu";
+//optional for clang linux-to-windows, must add custom flag use-clang-zig-msvc to enable
+constexpr string_view clang_zig_target_linux_to_windows_msvc = "x86_64-windows-msvc";
 
 namespace KalaMake::Language
 {
-	constexpr string_view cl_ide_bat_2026 = "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat";
-	constexpr string_view cl_build_bat_2026 = "C:\\Program Files (x86)\\Microsoft Visual Studio\\18\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat";
-	constexpr string_view cl_ide_bat_2022 = "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvars64.bat";
-	constexpr string_view cl_build_bat_2022 = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat";
-
-	static path foundCLPath{};
-
 	void LanguageCore::Compile(GlobalData& globalData)
 	{
 		CompilerType c = globalData.targetProfile.compiler;
-		if (c != CompilerType::C_CL
+		if (c != CompilerType::C_ZIG
+			&& c != CompilerType::C_CL
 			&& c != CompilerType::C_CLANG_CL
 			&& c != CompilerType::C_CLANG
 			&& c != CompilerType::C_CLANGPP
@@ -76,7 +82,8 @@ namespace KalaMake::Language
 	void LanguageCore::Generate(GlobalData& globalData)
 	{
 		CompilerType c = globalData.targetProfile.compiler;
-		if (c != CompilerType::C_CL
+		if (c != CompilerType::C_ZIG
+			&& c != CompilerType::C_CL
 			&& c != CompilerType::C_CLANG_CL
 			&& c != CompilerType::C_CLANG
 			&& c != CompilerType::C_CLANGPP
@@ -206,6 +213,15 @@ void Compile_Final(const GlobalData& globalData)
 		globalData.targetProfile.compiler == CompilerType::C_CL
 		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL;
 
+	if ((globalData.targetProfile.compiler == CompilerType::C_CL
+		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL)
+		&& globalData.targetProfile.targetType != TargetType::T_INVALID)
+	{
+		KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Cannot assign target type for cl or clang-cl compiler!");
+	}
+
 	string frontArg = isMSVC
 		? "/"
 		: "-";
@@ -222,6 +238,31 @@ void Compile_Final(const GlobalData& globalData)
 			EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
 			command += string(compiler);
 
+			if (compiler == "zig")
+			{
+				StandardType standardType = globalData.targetProfile.standard;
+
+				if (standardType == StandardType::C_89
+					|| standardType == StandardType::C_99
+					|| standardType == StandardType::C_11
+					|| standardType == StandardType::C_17
+					|| standardType == StandardType::C_23
+					|| standardType == StandardType::C_LATEST)
+				{
+					command += " c";
+				}
+				else if (standardType == StandardType::CPP_03
+					|| standardType == StandardType::CPP_11
+					|| standardType == StandardType::CPP_14
+					|| standardType == StandardType::CPP_17
+					|| standardType == StandardType::CPP_20
+					|| standardType == StandardType::CPP_23
+					|| standardType == StandardType::CPP_LATEST)
+				{
+					command += " c++";
+				}
+			}
+
 			//set standard
 
 			string_view standard{};
@@ -233,9 +274,9 @@ void Compile_Final(const GlobalData& globalData)
 
 			command += " " + standardArg + string(standard);
 
-			//set flags and warning level
+			//set compile flags and warning level
 
-			vector<string> finalFlags = globalData.targetProfile.flags;
+			vector<string> finalFlags = globalData.targetProfile.compileFlags;
 
 			switch (globalData.targetProfile.buildType)
 			{
@@ -243,39 +284,55 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("Zi");
-					finalFlags.push_back("Od");
+					finalFlags.push_back("/Zi");
+					finalFlags.push_back("/Od");
 				}
 				else
 				{
-					finalFlags.push_back("g");
-					finalFlags.push_back("O0");
+					finalFlags.push_back("-g");
+					finalFlags.push_back("-O0");
 				}
-				break;
-			}
-			case BuildType::B_RELEASE:
-			{
-				finalFlags.push_back("O2");
 				break;
 			}
 			case BuildType::B_RELDEBUG:
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("Zi");
-					finalFlags.push_back("O2");
+					finalFlags.push_back("/Zi");
+					finalFlags.push_back("/O2");
 				}
 				else
 				{
-					finalFlags.push_back("g");
-					finalFlags.push_back("O2");
+					finalFlags.push_back("-g");
+					finalFlags.push_back("-O2");
+				}
+				break;
+			}
+			case BuildType::B_RELEASE:
+			{
+				if (isMSVC)
+				{
+					finalFlags.push_back("/O2");
+				}
+				else
+				{
+					finalFlags.push_back("-g0");
+					finalFlags.push_back("-O2");
 				}
 				break;
 			}
 			case BuildType::B_MINSIZEREL:
 			{
-				if (isMSVC) finalFlags.push_back("O1");
-				else      finalFlags.push_back("Os");
+				if (isMSVC)
+				{
+					finalFlags.push_back("/O1");
+				}
+				else
+				{
+					finalFlags.push_back("-g0");
+					finalFlags.push_back("-Os");
+				}
+				break;
 			}
 
 			default: break;
@@ -285,28 +342,28 @@ void Compile_Final(const GlobalData& globalData)
 			{
 			case WarningLevel::W_BASIC:
 			{
-				if (isMSVC) finalFlags.push_back("W1");
-				else        finalFlags.push_back("Wall");
+				if (isMSVC) finalFlags.push_back("/W1");
+				else        finalFlags.push_back("-Wall");
 				break;
 			}
 			case WarningLevel::W_NORMAL:
 			{
-				if (isMSVC) finalFlags.push_back("W3");
+				if (isMSVC) finalFlags.push_back("/W3");
 				else
 				{
-					finalFlags.push_back("Wall");
-					finalFlags.push_back("Wextra");
+					finalFlags.push_back("-Wall");
+					finalFlags.push_back("-Wextra");
 				}
 				break;
 			}
 			case WarningLevel::W_STRONG:
 			{
-				if (isMSVC) finalFlags.push_back("W4");
+				if (isMSVC) finalFlags.push_back("/W4");
 				else
 				{
-					finalFlags.push_back("Wall");
-					finalFlags.push_back("Wextra");
-					finalFlags.push_back("Wpedantic");
+					finalFlags.push_back("-Wall");
+					finalFlags.push_back("-Wextra");
+					finalFlags.push_back("-Wpedantic");
 				}
 				break;
 			}
@@ -314,34 +371,35 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("W4");
-					finalFlags.push_back("permissive-");
+					finalFlags.push_back("/W4");
+					finalFlags.push_back("/permissive-");
 				}
 				else
 				{
-					finalFlags.push_back("Wall");
-					finalFlags.push_back("Wextra");
-					finalFlags.push_back("Wpedantic");
-					finalFlags.push_back("Wconversion");
-					finalFlags.push_back("Wsign-conversion");
+					finalFlags.push_back("-Wall");
+					finalFlags.push_back("-Wextra");
+					finalFlags.push_back("-Wpedantic");
+					finalFlags.push_back("-Wconversion");
+					finalFlags.push_back("-Wsign-conversion");
 				}
 				break;
 			}
 			case WarningLevel::W_ALL:
 			{
-				if (isMSVC) finalFlags.push_back("Wall");
+				if (isMSVC) finalFlags.push_back("/Wall");
 				else if (globalData.targetProfile.compiler == CompilerType::C_CLANG
-						|| globalData.targetProfile.compiler == CompilerType::C_CLANGPP)
+						|| globalData.targetProfile.compiler == CompilerType::C_CLANGPP
+						|| globalData.targetProfile.compiler == CompilerType::C_ZIG)
 				{
-					finalFlags.push_back("Weverything");
+					finalFlags.push_back("-Weverything");
 				}
 				else
 				{
-					finalFlags.push_back("Wall");
-					finalFlags.push_back("Wextra");
-					finalFlags.push_back("Wpedantic");
-					finalFlags.push_back("Wconversion");
-					finalFlags.push_back("Wsign-conversion");
+					finalFlags.push_back("-Wall");
+					finalFlags.push_back("-Wextra");
+					finalFlags.push_back("-Wpedantic");
+					finalFlags.push_back("-Wconversion");
+					finalFlags.push_back("-Wsign-conversion");
 				}
 				break;
 			}
@@ -352,7 +410,7 @@ void Compile_Final(const GlobalData& globalData)
 			RemoveDuplicates(finalFlags);
 			for (const auto& f : finalFlags)
 			{
-				command += " " + frontArg + f;
+				command += " " + f;
 			}
 
 			//set defines
@@ -483,6 +541,31 @@ void Compile_Final(const GlobalData& globalData)
 			}
 			command += string(compiler);
 
+			if (compiler == "zig")
+			{
+				StandardType standardType = globalData.targetProfile.standard;
+
+				if (standardType == StandardType::C_89
+					|| standardType == StandardType::C_99
+					|| standardType == StandardType::C_11
+					|| standardType == StandardType::C_17
+					|| standardType == StandardType::C_23
+					|| standardType == StandardType::C_LATEST)
+				{
+					command += " c";
+				}
+				else if (standardType == StandardType::CPP_03
+					|| standardType == StandardType::CPP_11
+					|| standardType == StandardType::CPP_14
+					|| standardType == StandardType::CPP_17
+					|| standardType == StandardType::CPP_20
+					|| standardType == StandardType::CPP_23
+					|| standardType == StandardType::CPP_LATEST)
+				{
+					command += " c++";
+				}
+			}
+
 #ifdef __linux__
 			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
 			{
@@ -564,6 +647,32 @@ void Compile_Final(const GlobalData& globalData)
 
 					return false;
 				};
+
+			//set link flags
+
+			vector<string> finalFlags = globalData.targetProfile.linkFlags;
+
+			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
+			{
+				if (isMSVC
+					&& (globalData.targetProfile.buildType == BuildType::B_DEBUG
+					|| globalData.targetProfile.buildType == BuildType::B_RELDEBUG))
+				{
+					finalFlags.push_back("/DEBUG");
+				}
+				if (!isMSVC
+					&& (globalData.targetProfile.buildType == BuildType::B_RELEASE
+					|| globalData.targetProfile.buildType == BuildType::B_MINSIZEREL))
+				{
+					finalFlags.push_back("-Wl,-s");
+				}
+			}
+
+			RemoveDuplicates(finalFlags);
+			for (const auto& f : finalFlags)
+			{
+				command += " " + f;
+			}
 
 			//add object files
 			for (const auto& o : objFiles)

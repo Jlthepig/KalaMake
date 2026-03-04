@@ -21,7 +21,7 @@ links: "_external_shared/KalaCLI/debug/KalaCLI1d.lib"
 
 #profile release-windows
 compiler: clang-cl
-buildtype: release
+buildtype: minsizerel
 buildpath: "build/release-windows"
 links: "_external_shared/KalaCLI/release/KalaCLI1.lib"
 
@@ -33,6 +33,6 @@ links: "_external_shared/KalaCLI/debug/libKalaCLI1d.a"
 
 #profile release-linux
 compiler: clang++
-buildtype: release
+buildtype: minsizerel
 buildpath: "build/release-linux"
 links: "_external_shared/KalaCLI/release/libKalaCLI1.a"
