@@ -6,10 +6,13 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <atomic>
+#include <thread>
 
 #include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/log_utils.hpp"
 #include "KalaHeaders/file_utils.hpp"
+#include "KalaHeaders/thread_utils.hpp"
 
 #include "language/kma_language.hpp"
 #include "core/kma_core.hpp"
@@ -22,6 +25,9 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::CreateNewDirectory;
+
+using KalaHeaders::KalaThread::lockwait_m;
+using KalaHeaders::KalaThread::unlock_m;
 
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
@@ -41,6 +47,12 @@ using std::filesystem::exists;
 using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
 using std::filesystem::last_write_time;
+using std::min;
+using std::atomic;
+using std::thread;
+using std::mutex;
+
+using u16 = uint16_t;
 
 static void PreCheck(GlobalData& globalData);
 
@@ -229,8 +241,6 @@ void Compile_Final(const GlobalData& globalData)
 
 	auto compile = [&isMSVC, &frontArg, &globalData]() -> vector<path>
 		{
-			vector<path> compiledObj{};
-
 			string command{};
 
 			//set compiler
@@ -504,6 +514,11 @@ void Compile_Final(const GlobalData& globalData)
 				? "/Fo:"
 				: "-o ";
 
+			vector<path> compiledObj{};
+			mutex m_compiledObj;
+
+			Log::Print("\n==========================================================================================\n");
+
 			auto needs_compile = [](
 				const path& source,
 				const path& object
@@ -514,41 +529,86 @@ void Compile_Final(const GlobalData& globalData)
 						|| last_write_time(source) > last_write_time(object);
 				};
 
-			for (const auto& s : globalData.targetProfile.sources)
-			{
-				path objPath = buildPath / (s.stem().string() + extension);
-				
-				string perFileCommand = command;
-
-				perFileCommand += " \"" + s.string() + "\"";
-				perFileCommand += " " + objFront + " \"" + objPath.string() + "\"";
-
-				Log::Print("\n==========================================================================================\n");
-
-				//only recompile this object file when source and object timestamp differences occur
-				if (needs_compile(s, objPath))
+			auto compile = [
+				&globalData,
+				&buildPath,
+				&extension,
+				&command,
+				&objFront,
+				needs_compile,
+				&compiledObj,
+				&m_compiledObj]
+				(int targetIndex) -> void
 				{
-					Log::Print(
-						"Starting to compile via '" + perFileCommand + "'.",
-						"LANGUAGE_C_CPP",
-						LogType::LOG_INFO);
+					const path& s = globalData.targetProfile.sources[targetIndex];
 
-					if (system(perFileCommand.c_str()) != 0)
+					path objPath = buildPath / (s.stem().string() + extension);
+					
+					string perFileCommand = command;
+
+					perFileCommand += " \"" + s.string() + "\"";
+					perFileCommand += " " + objFront + " \"" + objPath.string() + "\"";
+
+					//only recompile this object file when source and object timestamp differences occur
+					if (needs_compile(s, objPath))
 					{
-						KalaMakeCore::CloseOnError(
+						Log::Print(
+							"Starting to compile via '" + perFileCommand + "'.",
 							"LANGUAGE_C_CPP",
-							"Failed to compile object file '" + objPath.string() + "'!");
+							LogType::LOG_INFO);
+							
+						if (system(perFileCommand.c_str()) != 0)
+						{
+							KalaMakeCore::CloseOnError(
+								"LANGUAGE_C_CPP",
+								"Failed to compile object file '" + objPath.string() + "'!");
+						}
 					}
-				}
-				else
+					else
+					{
+						Log::Print(
+							"Skipping compilation of existing object file '" + objPath.string() + "'.",
+							"LANGUAGE_C_CPP",
+							LogType::LOG_INFO);
+
+						Log::Print("\n");
+					}
+
+					lockwait_m(m_compiledObj);
+					compiledObj.push_back(objPath);
+					unlock_m(m_compiledObj);
+				};
+
+			if (globalData.targetProfile.sources.size() == 1) compile(0);
+			else
+			{
+				u16 max_jobs = min(
+					scast<size_t>(globalData.targetProfile.jobs), 
+					globalData.targetProfile.sources.size());
+
+				atomic<int> next{};
+
+				vector<thread> workers{};
+
+				for (u16 i = 0; i < max_jobs; ++i)
 				{
-					Log::Print(
-						"Skipping compilation of existing object file '" + objPath.string() + "'.",
-						"LANGUAGE_C_CPP",
-						LogType::LOG_INFO);
+					workers.emplace_back([
+						&next, 
+						&globalData,
+						compile] 
+						{
+							while (true)
+							{
+								int idx = next++;
+
+								if (idx >= globalData.targetProfile.sources.size()) break;
+
+								compile(idx);
+							}
+						});
 				}
 
-				compiledObj.push_back(objPath);
+				for (auto& w : workers) w.join();
 			}
 
 			return compiledObj;
@@ -826,7 +886,7 @@ void Compile_Final(const GlobalData& globalData)
 					return false;
 				};
 
-			Log::Print("\n==========================================================================================\n");
+			Log::Print("==========================================================================================\n");
 
 			if (needs_link(outputPath, objFiles))
 			{
@@ -835,14 +895,14 @@ void Compile_Final(const GlobalData& globalData)
 					"LANGUAGE_C_CPP",
 					LogType::LOG_INFO);
 
+				Log::Print("\n");
+
 				if (system(command.c_str()) != 0)
 				{
 					KalaMakeCore::CloseOnError(
 						"LANGUAGE_C_CPP",
 						"Failed to link '" + outputPath.string() + "'!");
 				}
-
-				Log::Print("\n");
 
 				Log::Print(
 					"Finished linking to output '" + outputPath.string() + "'!",

@@ -1,8 +1,10 @@
-# KalaMake
+#KalaMake
 
-**KalaMake** is an executable that uses `.kmake` files that are designed as an alternative to CMake, Make and others of its kind with its own custom DSL and a simple CLI to compile libraries and software.
+Kalamake is a multithreaded binary compiler that uses ".kmake" files and it is intended to use as a replacement for other build scripts and generators like Make, Premake, CMake or Ninja. KalaMake automatically uses all available threads from your cpu to always help speed up compilation, or you can fill the jobs field with your desired job count.
 
-This cli was built with the help of the [KalaCLI](https://github.com/kalakit/kalacli) library.
+KalaMake currently accepts several commands, most of which come from [KalaCLI](https://github.com/kalakit/kalacli) which is statically linked to KalaMake. Type '--help' to list all available commands and type --info commandnamehere to list info about that command.
+
+Future plans for KalaMake involve post build commands like move, copy (skip if target exists), forcecopy (override existing target), rename, delete, and createdir. Post build commands will only run if compilation and linking succeeded.
 
 ## Links
 

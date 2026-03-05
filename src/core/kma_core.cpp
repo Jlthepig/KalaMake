@@ -3,6 +3,12 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#if _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #include <sstream>
 #include <filesystem>
 #include <string>
@@ -78,7 +84,8 @@ using std::vector;
 using std::unordered_map;
 using std::count;
 
-constexpr string_view solution_ninja  = "ninja";
+using u16 = uint16_t;
+
 constexpr string_view solution_vs     = "vs";
 constexpr string_view solution_vscode = "vscode";
 
@@ -94,6 +101,7 @@ constexpr string_view field_binary_type    = "binarytype";
 constexpr string_view field_compiler       = "compiler";
 constexpr string_view field_standard       = "standard";
 constexpr string_view field_target_type    = "targettype";
+constexpr string_view field_jobs           = "jobs";
 constexpr string_view field_binary_name    = "binaryname";
 constexpr string_view field_build_type     = "buildtype";
 constexpr string_view field_build_path     = "buildpath";
@@ -155,7 +163,6 @@ constexpr string_view warning_level_strong = "strong";
 constexpr string_view warning_level_strict = "strict";
 constexpr string_view warning_level_all    = "all";
 
-constexpr string_view custom_flag_use_ninja    = "use-ninja";
 constexpr string_view custom_flag_no_obj       = "no-obj";
 constexpr string_view custom_flag_standard_req = "standard-required";
 constexpr string_view custom_warnings_as_err   = "warnings-as-errors";
@@ -173,6 +180,15 @@ static bool foundPostBuild{};
 static bool foundTargetProfile{};
 
 static GlobalData globalData{};
+
+static u16 GetThreadCount()
+{
+#if _WIN32
+	return scast<u16>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
+#else
+	return scast<u16>(sysconf(_SC_NPROCESSORS_ONLN));
+#endif
+};
 
 static void CleanFoundFlags()
 {
@@ -1208,6 +1224,46 @@ static void ExtractFieldData(
 				"Field '" + name + "' is not allowed to have more than one value!");
 		}
 
+		if (name == field_jobs
+			&& !trimmedValue.empty())
+		{
+			unsigned long parsed{};
+
+			try
+			{
+				parsed = scast<int>(stoul(trimmedValue));
+			}
+			catch (...)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Jobs value must contain a valid unsigned integer!");
+			}
+			
+			int jobs = scast<int>(parsed);
+
+			if (jobs <= 0)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Jobs value count must be 1 or greater!");
+			}
+			if (jobs > UINT16_MAX)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Jobs value count must be less than 65536!");
+			}
+
+			if (jobs > (GetThreadCount() * 2))
+			{
+				Log::Print(
+					"Jobs count exceeds double the thread count, issues may occur during compilation.",
+					"KALAMAKE",
+					LogType::LOG_WARNING);
+			}
+		}
+
 		if (name == field_binary_type)
 		{
 			const auto& binaryTypes = KalaMakeCore::GetBinaryTypes();
@@ -1310,7 +1366,6 @@ namespace KalaMake::Core
 
 	static const unordered_map<SolutionType, string_view, EnumHash<SolutionType>> solutionTypes =
 	{
-		{ SolutionType::S_NINJA,  solution_ninja },
 		{ SolutionType::S_VS,     solution_vs },
 		{ SolutionType::S_VSCODE, solution_vscode }
 	};
@@ -1335,6 +1390,7 @@ namespace KalaMake::Core
 		{ FieldType::T_COMPILER,       field_compiler },
 		{ FieldType::T_STANDARD,       field_standard },
 		{ FieldType::T_TARGET_TYPE,    field_target_type },
+		{ FieldType::T_JOBS,           field_jobs },
 
 		{ FieldType::T_BINARY_NAME,    field_binary_name },
 		{ FieldType::T_BUILD_TYPE,     field_build_type },
@@ -1425,7 +1481,6 @@ namespace KalaMake::Core
 	//their true meanings change depending on which OS is used
 	static const unordered_map<CustomFlag, string_view, EnumHash<CustomFlag>> customFlags =
 	{
-		{ CustomFlag::F_USE_NINJA,               custom_flag_use_ninja },
 		{ CustomFlag::F_NO_OBJ,                  custom_flag_no_obj },
 		{ CustomFlag::F_STANDARD_REQUIRED,       custom_flag_standard_req },
 		{ CustomFlag::F_WARNINGS_AS_ERRORS,      custom_warnings_as_err },
@@ -1588,6 +1643,7 @@ namespace KalaMake::Core
 				"KALAMAKE",
 				"No standard was passed!");
 		}
+		
 		if (globalData.targetProfile.binaryName.empty())
 		{
 			KalaMakeCore::CloseOnError(
@@ -1612,6 +1668,14 @@ namespace KalaMake::Core
 				"KALAMAKE",
 				"No sources were passed!");
 		}
+
+		//assign cpu thread count if none was assigned
+		if (globalData.targetProfile.jobs == 0) globalData.targetProfile.jobs = GetThreadCount();
+
+		Log::Print(
+			"Using '" + to_string(globalData.targetProfile.jobs) + "' jobs for compilation.\n",
+			"KALAMAKE",
+			LogType::LOG_INFO);
 
 		Log::Print("\n==========================================================================================\n");
 
@@ -2070,6 +2134,11 @@ void FirstParse(const vector<string>& lines)
 					if (globalData.targetProfile.targetType == TargetType::T_LINUX) globalData.targetProfile.targetType = TargetType::T_INVALID;
 #endif
 				}
+				if (fields.contains(string(field_jobs)))
+				{
+					const vector<string>& values = fields[string(field_jobs)];
+					globalData.targetProfile.jobs = scast<u16>(stoul(values[0]));
+				}
 
 				if (fields.contains(string(field_binary_name)))
 				{
@@ -2272,6 +2341,11 @@ void FirstParse(const vector<string>& lines)
 #else
 					if (globalData.targetProfile.targetType == TargetType::T_LINUX) globalData.targetProfile.targetType = TargetType::T_INVALID;
 #endif
+				}
+				if (fields.contains(string(field_jobs)))
+				{
+					const vector<string>& values = fields[string(field_jobs)];
+					globalData.targetProfile.jobs = scast<u16>(stoul(values[0]));
 				}
 
 				if (fields.contains(string(field_binary_name)))

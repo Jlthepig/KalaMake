@@ -23,6 +23,7 @@ namespace KalaMake::Core
 	using std::unordered_map;
 
 	using u8 = uint8_t;
+	using u16 = uint16_t;
 
 	constexpr size_t MIN_NAME_LENGTH = 1;
 	constexpr size_t MAX_NAME_LENGTH = 20;
@@ -95,45 +96,46 @@ namespace KalaMake::Core
 		//what is the target platform of the binary,
 		//supports zig, clang, clang++, gcc and g++
 		T_TARGET_TYPE = 4u,
+		T_JOBS = 5u,
 
 		//what is the name of the the binary
-		T_BINARY_NAME = 5u,
+		T_BINARY_NAME = 6u,
 		//which build type is the binary
-		T_BUILD_TYPE = 6u,
+		T_BUILD_TYPE = 7u,
 		//where is the binary built to
-		T_BUILD_PATH = 7u,
+		T_BUILD_PATH = 8u,
 		//where are the source code files of the binary located
-		T_SOURCES = 8u,
+		T_SOURCES = 9u,
 		//where are the header files of the binary located,
 		//only for C and C++
-		T_HEADERS = 9u,
+		T_HEADERS = 10u,
 		//what links will be added to the binary,
 		//only for C, C++ and Rust
-		T_LINKS = 10u,
+		T_LINKS = 11u,
 		//what warning level will compilation and linking use, defaults to 'none'
-		T_WARNING_LEVEL = 11u,
+		T_WARNING_LEVEL = 12u,
 		//what defines will be added to the binary,
 		//only for C, C++ and Rust
-		T_DEFINES = 12u,
+		T_DEFINES = 13u,
 		//what flags will be passed to the compiler stage, optional
-		T_COMPILE_FLAGS = 13u,
+		T_COMPILE_FLAGS = 14u,
 		//what flags will be passed to the link stage, optional
-		T_LINK_FLAGS = 14u,
+		T_LINK_FLAGS = 15u,
 		//what kalamake-specific flags will trigger extra actions
-		T_CUSTOM_FLAGS = 15u,
+		T_CUSTOM_FLAGS = 16u,
 
 		//where a file or folder is moved
-		T_MOVE = 16u,
+		T_MOVE = 17u,
 		//where a file or folder is copied
-		T_COPY = 17u,
+		T_COPY = 18u,
 		//where a file or folder is copied and overridden if it already exists
-		T_FORCECOPY = 18u,
+		T_FORCECOPY = 19u,
 		//where a new folder is created
-		T_CREATE_DIR = 19u,
+		T_CREATE_DIR = 20u,
 		//where a file or folder is deleted
-		T_DELETE = 20u,
+		T_DELETE = 21u,
 		//what a file or folder will be renamed to
-		T_RENAME = 21u
+		T_RENAME = 22u
 	};
 
 	//Allowed binary types that can be added to the binarytype field
@@ -255,21 +257,18 @@ namespace KalaMake::Core
 	{
 		F_INVALID = 0u,
 
-		//uses the multithreaded benefits of ninja for faster compilation
-		F_USE_NINJA = 1u,
-
 		//will not generate object files for object-compatible languages - compiles and links directly
-		F_NO_OBJ = 2u,
+		F_NO_OBJ = 1u,
 
 		//fails the build if the compiler cannot support the requested standard, ignored on GNU
-		F_STANDARD_REQUIRED = 3u,
+		F_STANDARD_REQUIRED = 2u,
 
 		//treats all warnings as errors
-		F_WARNINGS_AS_ERRORS = 4u,
+		F_WARNINGS_AS_ERRORS = 3u,
 
 		//uses msvc instead of the default gnu for cross-compiling linux binary to windows binary,
 		//not usable for msvc compilers, not usable outside of linux and c/c++
-		F_USE_CLANG_ZIG_MSVC = 5u
+		F_USE_CLANG_ZIG_MSVC = 4u
 	};
 	
 	struct ProfileData
@@ -287,6 +286,8 @@ namespace KalaMake::Core
 		//what is the target platform of the binary,
 		//supports zig, clang, clang++, gcc and g++
 		TargetType targetType{};
+		//how many parallel compilation jobs are allowed
+		u16 jobs{};
 
 		//what is the target type of the binary, required
 		string binaryName{};
