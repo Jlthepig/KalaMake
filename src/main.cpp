@@ -3,10 +3,14 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include "KalaHeaders/log_utils.hpp"
+
 #include "KalaCLI/include/core.hpp"
 #include "KalaCLI/include/command.hpp"
 
 #include "core/kma_core.hpp"
+
+using KalaHeaders::KalaLog::Log;
 
 using KalaCLI::Core;
 using KalaCLI::CommandManager;
@@ -26,6 +30,10 @@ static void AddExternalCommands()
 	auto generate = [](const vector<string>& params)
 		{
 			KalaMakeCore::OpenFile(params, TargetState::S_GENERATE);
+		};
+	auto version = [](const vector<string>& params)
+		{
+			Log::Print("prerelease-linux aka prog tries to avoid isa");
 		};
 
 	CommandManager::AddCommand(
@@ -49,6 +57,14 @@ static void AddExternalCommands()
 				"fourth parameter must be a solution type.",
 			.paramCount = 4,
 			.targetFunction = generate
+		});
+
+	CommandManager::AddCommand(
+		{
+			.primaryParam = "version",
+			.description = "Prints current KalaMake version",
+			.paramCount = 1,
+			.targetFunction = version
 		});
 }
 
