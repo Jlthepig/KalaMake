@@ -32,6 +32,7 @@ using KalaHeaders::KalaThread::unlock_m;
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
 using KalaMake::Core::BinaryType;
+using KalaMake::Core::CompilerLauncherType;
 using KalaMake::Core::CompilerType;
 using KalaMake::Core::StandardType;
 using KalaMake::Core::TargetType;
@@ -242,6 +243,16 @@ void Compile_Final(const GlobalData& globalData)
 	auto compile = [&isMSVC, &frontArg, &globalData]() -> vector<path>
 		{
 			string command{};
+
+			//set compiler launcher
+
+			if (globalData.targetProfile.compilerLauncher != CompilerLauncherType::C_INVALID)
+			{
+				string_view compilerLauncher{};
+				EnumToString(globalData.targetProfile.compilerLauncher, KalaMakeCore::GetCompilerLauncherTypes(), compilerLauncher);
+
+				command += string(compilerLauncher) + " ";
+			}
 
 			//set compiler
 
@@ -622,6 +633,17 @@ void Compile_Final(const GlobalData& globalData)
 
 			string command{};
 
+			//set compiler launcher
+
+			if (globalData.targetProfile.compilerLauncher != CompilerLauncherType::C_INVALID
+				&& globalData.targetProfile.binaryType != BinaryType::B_STATIC)
+			{
+				string_view compilerLauncher{};
+				EnumToString(globalData.targetProfile.compilerLauncher, KalaMakeCore::GetCompilerLauncherTypes(), compilerLauncher);
+
+				command += string(compilerLauncher) + " ";
+			}
+
 			//set compiler
 
 			string_view compiler{};
@@ -701,63 +723,6 @@ void Compile_Final(const GlobalData& globalData)
 					else command += " -target " + string(clang_zig_target_linux_to_windows_gnu);
 				}
 #endif
-			}
-
-#ifdef __linux__
-			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC
-				&& globalData.targetProfile.targetType != TargetType::T_WINDOWS)
-			{
-				//set current dir .so flags for linux
-				command += " -Wl,-rpath,'$ORIGIN'";
-			}
-#endif
-
-			//add object files
-			
-			for (const auto& o : objFiles)
-			{
-				command += " \"" + o.string() + "\"";
-			}
-
-			//set link flags
-
-			vector<string> finalFlags = globalData.targetProfile.linkFlags;
-
-			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
-			{
-				if (isMSVC
-					&& (globalData.targetProfile.buildType == BuildType::B_DEBUG
-					|| globalData.targetProfile.buildType == BuildType::B_RELDEBUG))
-				{
-					finalFlags.push_back("/DEBUG");
-				}
-				if (!isMSVC
-					&& (globalData.targetProfile.buildType == BuildType::B_RELEASE
-					|| globalData.targetProfile.buildType == BuildType::B_MINSIZEREL))
-				{
-					finalFlags.push_back("-Wl,-s");
-				}
-			}
-
-			RemoveDuplicates(finalFlags);
-			for (const auto& f : finalFlags)
-			{
-				command += " " + f;
-			}
-
-			//set links
-
-			if (!globalData.targetProfile.links.empty())
-			{
-				for (const auto& l : globalData.targetProfile.links)
-				{
-					if (path(l).has_extension()) command += " \"" + l.string() + "\"";
-					else
-					{
-						if (isMSVC) command += " " + l.string() + ".lib";
-						else        command += " -l" + l.string();
-					}
-				}
 			}
 
 			//set output
@@ -858,6 +823,63 @@ void Compile_Final(const GlobalData& globalData)
 
 			command += " " + outputArgFront + outputArg + "\"" + outputPath.string() + "\"";
 
+			//add object files
+			
+			for (const auto& o : objFiles)
+			{
+				command += " \"" + o.string() + "\"";
+			}
+
+			//set link flags
+
+			vector<string> finalFlags = globalData.targetProfile.linkFlags;
+
+#ifdef __linux__
+			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC
+				&& globalData.targetProfile.targetType != TargetType::T_WINDOWS)
+			{
+				//set current dir .so flags for linux
+				finalFlags.push_back("-Wl,-rpath,'$ORIGIN'");
+			}
+#endif
+
+			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
+			{
+				if (isMSVC
+					&& (globalData.targetProfile.buildType == BuildType::B_DEBUG
+					|| globalData.targetProfile.buildType == BuildType::B_RELDEBUG))
+				{
+					finalFlags.push_back("/DEBUG");
+				}
+				if (!isMSVC
+					&& (globalData.targetProfile.buildType == BuildType::B_RELEASE
+					|| globalData.targetProfile.buildType == BuildType::B_MINSIZEREL))
+				{
+					finalFlags.push_back("-Wl,-s");
+				}
+			}
+
+			RemoveDuplicates(finalFlags);
+			for (const auto& f : finalFlags)
+			{
+				command += " " + f;
+			}
+
+			//set links
+
+			if (!globalData.targetProfile.links.empty())
+			{
+				for (const auto& l : globalData.targetProfile.links)
+				{
+					if (path(l).has_extension()) command += " \"" + l.string() + "\"";
+					else
+					{
+						if (isMSVC) command += " " + l.string() + ".lib";
+						else        command += " -l" + l.string();
+					}
+				}
+			}
+
 			//link 
 
 			auto needs_link = [&globalData](
@@ -880,7 +902,11 @@ void Compile_Final(const GlobalData& globalData)
 
 					for (const auto& l : globalData.targetProfile.links)
 					{
-						if (last_write_time(l) > exeTime) return true;
+						if (exists(l)
+							&& last_write_time(l) > exeTime)
+						{
+							return true;
+						}
 					}
 
 					return false;

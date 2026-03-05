@@ -53,12 +53,12 @@ using KalaHeaders::KalaString::HasAnyWhiteSpace;
 using KalaHeaders::KalaString::HasAnyUnsafeFieldChar;
 
 using KalaMake::Core::KalaMakeCore;
-using KalaMake::Core::ProfileData;
 using KalaMake::Core::IncludeData;
 using KalaMake::Core::GlobalData;
 using KalaMake::Core::Version;
 using KalaMake::Core::CategoryType;
 using KalaMake::Core::FieldType;
+using KalaMake::Core::CompilerLauncherType;
 using KalaMake::Core::CompilerType;
 using KalaMake::Core::StandardType;
 using KalaMake::Core::TargetType;
@@ -97,32 +97,38 @@ constexpr string_view category_global    = "global";
 constexpr string_view category_profile   = "profile";
 constexpr string_view category_postbuild = "postbuild";
 
-constexpr string_view field_binary_type    = "binarytype";
-constexpr string_view field_compiler       = "compiler";
-constexpr string_view field_standard       = "standard";
-constexpr string_view field_target_type    = "targettype";
-constexpr string_view field_jobs           = "jobs";
-constexpr string_view field_binary_name    = "binaryname";
-constexpr string_view field_build_type     = "buildtype";
-constexpr string_view field_build_path     = "buildpath";
-constexpr string_view field_sources        = "sources";
-constexpr string_view field_headers        = "headers";
-constexpr string_view field_links          = "links";
-constexpr string_view field_warning_level  = "warninglevel";
-constexpr string_view field_defines        = "defines";
-constexpr string_view field_compile_flags  = "compileflags";
-constexpr string_view field_link_flags     = "linkflags";
-constexpr string_view field_custom_flags   = "customflags";
-constexpr string_view field_move           = "move";
-constexpr string_view field_copy           = "copy";
-constexpr string_view field_force_copy     = "forcecopy";
-constexpr string_view field_create_dir     = "createdir";
-constexpr string_view field_delete         = "delete";
-constexpr string_view field_rename         = "rename";
+constexpr string_view field_binary_type       = "binarytype";
+constexpr string_view field_compiler_launcher = "compilerlauncher";
+constexpr string_view field_compiler          = "compiler";
+constexpr string_view field_standard          = "standard";
+constexpr string_view field_target_type       = "targettype";
+constexpr string_view field_jobs              = "jobs";
+constexpr string_view field_binary_name       = "binaryname";
+constexpr string_view field_build_type        = "buildtype";
+constexpr string_view field_build_path        = "buildpath";
+constexpr string_view field_sources           = "sources";
+constexpr string_view field_headers           = "headers";
+constexpr string_view field_links             = "links";
+constexpr string_view field_warning_level     = "warninglevel";
+constexpr string_view field_defines           = "defines";
+constexpr string_view field_compile_flags     = "compileflags";
+constexpr string_view field_link_flags        = "linkflags";
+constexpr string_view field_custom_flags      = "customflags";
+constexpr string_view field_move              = "move";
+constexpr string_view field_copy              = "copy";
+constexpr string_view field_force_copy        = "forcecopy";
+constexpr string_view field_create_dir        = "createdir";
+constexpr string_view field_delete            = "delete";
+constexpr string_view field_rename            = "rename";
 
 constexpr string_view binary_type_executable = "executable";
 constexpr string_view binary_type_static     = "static";
 constexpr string_view binary_type_shared     = "shared";
+
+constexpr string_view compiler_launcher_ccache  = "ccache";
+constexpr string_view compiler_launcher_sccache = "sccache";
+constexpr string_view compiler_launcher_distcc  = "distcc";
+constexpr string_view compiler_launcher_icecc   = "icecc";
 
 constexpr string_view compiler_zig      = "zig";
 constexpr string_view compiler_clang_cl = "clang-cl";
@@ -1213,8 +1219,10 @@ static void ExtractFieldData(
 		}
 
 		if ((name == field_binary_type
+			|| name == field_compiler_launcher
 			|| name == field_compiler
 			|| name == field_standard
+			|| name == field_target_type
 			|| name == field_binary_name
 			|| name == field_warning_level)
 			&& trimmedValue.find(",") != string::npos)
@@ -1290,6 +1298,19 @@ static void ExtractFieldData(
 					"Build type '" + trimmedValue + "' is invalid!");
 			}
 		}
+		if (name == field_compiler_launcher)
+		{
+			const auto& compilerLauncherTypes = KalaMakeCore::GetCompilerLauncherTypes();
+
+			CompilerLauncherType compilerLauncherType{};
+			if (!StringToEnum(trimmedValue, compilerLauncherTypes, compilerLauncherType)
+				|| compilerLauncherType == CompilerLauncherType::C_INVALID)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Compiler launcher type '" + trimmedValue + "' is invalid!");
+			}
+		}
 		if (name == field_compiler)
 		{
 			const auto& compilerTypes = KalaMakeCore::GetCompilerTypes();
@@ -1333,7 +1354,7 @@ static void ExtractFieldData(
 	if (outFieldValues.empty())
 	{
 		Log::Print(
-			"Field '" + outFieldName + "' was parsed correctly and had no values",
+			"Field '" + outFieldName + "' was parsed correctly and had no values.",
 			"KALAMAKE",
 			LogType::LOG_INFO);
 	}
@@ -1386,11 +1407,12 @@ namespace KalaMake::Core
 
 	static const unordered_map<FieldType, string_view, EnumHash<FieldType>> fieldTypes =
 	{
-		{ FieldType::T_BINARY_TYPE,    field_binary_type },
-		{ FieldType::T_COMPILER,       field_compiler },
-		{ FieldType::T_STANDARD,       field_standard },
-		{ FieldType::T_TARGET_TYPE,    field_target_type },
-		{ FieldType::T_JOBS,           field_jobs },
+		{ FieldType::T_BINARY_TYPE,       field_binary_type },
+		{ FieldType::T_COMPILER_LAUNCHER, field_compiler_launcher },
+		{ FieldType::T_COMPILER,          field_compiler },
+		{ FieldType::T_STANDARD,          field_standard },
+		{ FieldType::T_TARGET_TYPE,       field_target_type },
+		{ FieldType::T_JOBS,              field_jobs },
 
 		{ FieldType::T_BINARY_NAME,    field_binary_name },
 		{ FieldType::T_BUILD_TYPE,     field_build_type },
@@ -1417,6 +1439,14 @@ namespace KalaMake::Core
 		{ BinaryType::B_EXECUTABLE, binary_type_executable },
 		{ BinaryType::B_STATIC,     binary_type_static },
 		{ BinaryType::B_SHARED,     binary_type_shared }
+	};
+
+	static const unordered_map<CompilerLauncherType, string_view, EnumHash<CompilerLauncherType>> compilerLauncherTypes =
+	{
+		{ CompilerLauncherType::C_CCACHE,  compiler_launcher_ccache },
+		{ CompilerLauncherType::C_SCCACHE, compiler_launcher_sccache },
+		{ CompilerLauncherType::C_DISTCC,  compiler_launcher_distcc },
+		{ CompilerLauncherType::C_ICECC,   compiler_launcher_icecc }
 	};
 
 	static const unordered_map<CompilerType, string_view, EnumHash<CompilerType>> compilerTypes =
@@ -1762,17 +1792,18 @@ namespace KalaMake::Core
 	}
 
 	const unordered_map<SolutionType, string_view, EnumHash<SolutionType>>& KalaMakeCore::GetSolutionTypes() { return solutionTypes; }
-	const unordered_map<Version,      string_view, EnumHash<Version>>&      KalaMakeCore::GetVersions() {      return versions; }
+	const unordered_map<Version,      string_view, EnumHash<Version>>&      KalaMakeCore::GetVersions()      { return versions; }
 	const unordered_map<CategoryType, string_view, EnumHash<CategoryType>>& KalaMakeCore::GetCategoryTypes() { return categoryTypes; }
-	const unordered_map<FieldType,    string_view, EnumHash<FieldType>>&    KalaMakeCore::GetFieldTypes() {    return fieldTypes; }
+	const unordered_map<FieldType,    string_view, EnumHash<FieldType>>&    KalaMakeCore::GetFieldTypes()    { return fieldTypes; }
 
-	const unordered_map<BinaryType,   string_view, EnumHash<BinaryType>>&   KalaMakeCore::GetBinaryTypes() {   return binaryTypes; }
-	const unordered_map<CompilerType, string_view, EnumHash<CompilerType>>& KalaMakeCore::GetCompilerTypes() { return compilerTypes; }
-	const unordered_map<StandardType, string_view, EnumHash<StandardType>>& KalaMakeCore::GetStandardTypes() { return standardTypes; }
-	const unordered_map<TargetType,   string_view, EnumHash<TargetType>>&   KalaMakeCore::GetTargetTypes() {   return targetTypes; }
-	const unordered_map<BuildType,    string_view, EnumHash<BuildType>>&    KalaMakeCore::GetBuildTypes() {    return buildTypes; }
-	const unordered_map<WarningLevel, string_view, EnumHash<WarningLevel>>& KalaMakeCore::GetWarningLevels() { return warningLevels; }
-	const unordered_map<CustomFlag,   string_view, EnumHash<CustomFlag>>&   KalaMakeCore::GetCustomFlags() {   return customFlags; }
+	const unordered_map<BinaryType,           string_view, EnumHash<BinaryType>>&           KalaMakeCore::GetBinaryTypes()           { return binaryTypes; }
+	const unordered_map<CompilerLauncherType, string_view, EnumHash<CompilerLauncherType>>& KalaMakeCore::GetCompilerLauncherTypes() { return compilerLauncherTypes; }
+	const unordered_map<CompilerType,         string_view, EnumHash<CompilerType>>&         KalaMakeCore::GetCompilerTypes()         { return compilerTypes; }
+	const unordered_map<StandardType,         string_view, EnumHash<StandardType>>&         KalaMakeCore::GetStandardTypes()         { return standardTypes; }
+	const unordered_map<TargetType,           string_view, EnumHash<TargetType>>&           KalaMakeCore::GetTargetTypes()           { return targetTypes; }
+	const unordered_map<BuildType,            string_view, EnumHash<BuildType>>&            KalaMakeCore::GetBuildTypes()            { return buildTypes; }
+	const unordered_map<WarningLevel,         string_view, EnumHash<WarningLevel>>&         KalaMakeCore::GetWarningLevels()         { return warningLevels; }
+	const unordered_map<CustomFlag,           string_view, EnumHash<CustomFlag>>&           KalaMakeCore::GetCustomFlags()           { return customFlags; }
 
     void KalaMakeCore::CloseOnError(
 		string_view target,
@@ -2105,6 +2136,14 @@ void FirstParse(const vector<string>& lines)
 					StringToEnum(values.front(), KalaMake::Core::binaryTypes, result);
 					globalData.targetProfile.binaryType = result;
 				}
+				if (fields.contains(string(field_compiler_launcher)))
+				{
+					const vector<string>& values = fields[string(field_compiler_launcher)];
+
+					CompilerLauncherType result{};
+					StringToEnum(values.front(), KalaMake::Core::compilerLauncherTypes, result);
+					globalData.targetProfile.compilerLauncher = result;
+				}
 				if (fields.contains(string(field_compiler)))
 				{
 					const vector<string>& values = fields[string(field_compiler)];
@@ -2320,6 +2359,14 @@ void FirstParse(const vector<string>& lines)
 					CompilerType result{};
 					StringToEnum(values.front(), KalaMake::Core::compilerTypes, result);
 					globalData.targetProfile.compiler = result;
+				}
+				if (fields.contains(string(field_compiler_launcher)))
+				{
+					const vector<string>& values = fields[string(field_compiler_launcher)];
+
+					CompilerLauncherType result{};
+					StringToEnum(values.front(), KalaMake::Core::compilerLauncherTypes, result);
+					globalData.targetProfile.compilerLauncher = result;
 				}
 				if (fields.contains(string(field_standard)))
 				{

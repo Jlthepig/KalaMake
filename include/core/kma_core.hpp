@@ -88,54 +88,57 @@ namespace KalaMake::Core
 
 		//what is the target type of the binary
 		T_BINARY_TYPE = 1u,
+		//which compiler launcher runs before the compiler
+		T_COMPILER_LAUNCHER = 2u,
 		//which compiler is used to compile this binary source code
-		T_COMPILER = 2u,
+		T_COMPILER = 3u,
 		//which language standard is used to compile this source code,
 		//only for C, C++, C#, Rust and Java
-		T_STANDARD = 3u,
+		T_STANDARD = 4u,
 		//what is the target platform of the binary,
 		//supports zig, clang, clang++, gcc and g++
-		T_TARGET_TYPE = 4u,
-		T_JOBS = 5u,
+		T_TARGET_TYPE = 5u,
+		//how many jobs are allowed to do in parallel for compilation
+		T_JOBS = 6u,
 
 		//what is the name of the the binary
-		T_BINARY_NAME = 6u,
+		T_BINARY_NAME = 7u,
 		//which build type is the binary
-		T_BUILD_TYPE = 7u,
+		T_BUILD_TYPE = 8u,
 		//where is the binary built to
-		T_BUILD_PATH = 8u,
+		T_BUILD_PATH = 9u,
 		//where are the source code files of the binary located
-		T_SOURCES = 9u,
+		T_SOURCES = 10u,
 		//where are the header files of the binary located,
 		//only for C and C++
-		T_HEADERS = 10u,
+		T_HEADERS = 11u,
 		//what links will be added to the binary,
 		//only for C, C++ and Rust
-		T_LINKS = 11u,
+		T_LINKS = 12u,
 		//what warning level will compilation and linking use, defaults to 'none'
-		T_WARNING_LEVEL = 12u,
+		T_WARNING_LEVEL = 13u,
 		//what defines will be added to the binary,
 		//only for C, C++ and Rust
-		T_DEFINES = 13u,
+		T_DEFINES = 14u,
 		//what flags will be passed to the compiler stage, optional
-		T_COMPILE_FLAGS = 14u,
+		T_COMPILE_FLAGS = 15u,
 		//what flags will be passed to the link stage, optional
-		T_LINK_FLAGS = 15u,
+		T_LINK_FLAGS = 16u,
 		//what kalamake-specific flags will trigger extra actions
-		T_CUSTOM_FLAGS = 16u,
+		T_CUSTOM_FLAGS = 17u,
 
 		//where a file or folder is moved
-		T_MOVE = 17u,
+		T_MOVE = 18u,
 		//where a file or folder is copied
-		T_COPY = 18u,
+		T_COPY = 19u,
 		//where a file or folder is copied and overridden if it already exists
-		T_FORCECOPY = 19u,
+		T_FORCECOPY = 20u,
 		//where a new folder is created
-		T_CREATE_DIR = 20u,
+		T_CREATE_DIR = 21u,
 		//where a file or folder is deleted
-		T_DELETE = 21u,
+		T_DELETE = 22u,
 		//what a file or folder will be renamed to
-		T_RENAME = 22u
+		T_RENAME = 23u
 	};
 
 	//Allowed binary types that can be added to the binarytype field
@@ -153,6 +156,21 @@ namespace KalaMake::Core
 		//creates a .dll and a linkable .lib on MSVC,
 		//creates a .so on GNU, same as runtime-only
 		B_SHARED = 3u
+	};
+
+	//Specifies a compiler launcher program that runs before the compiler
+	enum class CompilerLauncherType : u8
+	{
+		C_INVALID = 0u,
+
+		//reuses previous compile results
+		C_CCACHE = 1u,
+		//same as ccache but supports shared cache servers
+		C_SCCACHE = 2u,
+		//sends compile jobs to other servers
+		C_DISTCC = 3u,
+		//same as distcc but ships compiler toolchain too
+		C_ICECC = 4u
 	};
 
 	//Allowed compiler types that can be added to the compiler field
@@ -278,6 +296,8 @@ namespace KalaMake::Core
 
 		//what is the target type of the binary, required
 		BinaryType binaryType{};
+		//which compiler launcher runs before the compiler
+		CompilerLauncherType compilerLauncher{};
 		//which compiler is used to compile this binary source code, required
 		CompilerType compiler{};
 		//which language standard is used to compile this source code,
@@ -365,13 +385,14 @@ namespace KalaMake::Core
 		static const unordered_map<CategoryType, string_view, EnumHash<CategoryType>>& GetCategoryTypes();
 		static const unordered_map<FieldType,    string_view, EnumHash<FieldType>>&    GetFieldTypes();
 
-		static const unordered_map<BinaryType,   string_view, EnumHash<BinaryType>>&   GetBinaryTypes();
-		static const unordered_map<CompilerType, string_view, EnumHash<CompilerType>>& GetCompilerTypes();
-		static const unordered_map<StandardType, string_view, EnumHash<StandardType>>& GetStandardTypes();
-		static const unordered_map<TargetType,   string_view, EnumHash<TargetType>>&   GetTargetTypes();
-		static const unordered_map<BuildType,    string_view, EnumHash<BuildType>>&    GetBuildTypes();
-		static const unordered_map<WarningLevel, string_view, EnumHash<WarningLevel>>& GetWarningLevels();
-		static const unordered_map<CustomFlag,   string_view, EnumHash<CustomFlag>>&   GetCustomFlags();
+		static const unordered_map<BinaryType,           string_view, EnumHash<BinaryType>>&           GetBinaryTypes();
+		static const unordered_map<CompilerLauncherType, string_view, EnumHash<CompilerLauncherType>>& GetCompilerLauncherTypes();
+		static const unordered_map<CompilerType,         string_view, EnumHash<CompilerType>>&         GetCompilerTypes();
+		static const unordered_map<StandardType,         string_view, EnumHash<StandardType>>&         GetStandardTypes();
+		static const unordered_map<TargetType,           string_view, EnumHash<TargetType>>&           GetTargetTypes();
+		static const unordered_map<BuildType,            string_view, EnumHash<BuildType>>&            GetBuildTypes();
+		static const unordered_map<WarningLevel,         string_view, EnumHash<WarningLevel>>&         GetWarningLevels();
+		static const unordered_map<CustomFlag,           string_view, EnumHash<CustomFlag>>&           GetCustomFlags();
 
 		static void CloseOnError(
 			string_view target,
