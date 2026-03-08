@@ -51,7 +51,7 @@ The global category describes global state across all user-defined profiles so n
 
 Available fields:
     - binarytype
-    - compilerllauncher (optional)
+    - compilerlauncher (optional)
     - compiler
     - standard
     - targettype (optional)
@@ -98,7 +98,6 @@ Available values:
     - gcc
     - g++
     - clang
-    - clang-cl
     - zig
     
 ### standard

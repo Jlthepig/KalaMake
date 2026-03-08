@@ -1161,13 +1161,6 @@ void ExtractFieldData(
 				"Reference '" + name + "' must have a value!");
 		}
 
-		if (trimmedValue.find(',') != string::npos)
-		{
-			KalaMakeCore::CloseOnError(
-				"KALAMAKE",
-				"Reference '" + name  + "' is not allowed to have more than one value!");
-		}
-
 		outFieldName = name;
 		outFieldValues = { trimmedValue };
 	}
