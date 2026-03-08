@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 #include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/log_utils.hpp"
@@ -33,7 +34,6 @@ using KalaHeaders::KalaCore::AnyEnumAndStringMap;
 using KalaHeaders::KalaCore::AnyEnum;
 using KalaHeaders::KalaCore::StringToEnum;
 using KalaHeaders::KalaCore::RemoveDuplicates;
-using KalaHeaders::KalaCore::StringToEnum;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -50,6 +50,7 @@ using KalaHeaders::KalaString::ReplaceAfter;
 using KalaHeaders::KalaString::TrimString;
 using KalaHeaders::KalaString::HasAnyWhiteSpace;
 using KalaHeaders::KalaString::HasAnyUnsafeFieldChar;
+using KalaHeaders::KalaString::HasAnyWhiteSpace;
 
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Core::ReferenceData;
@@ -81,6 +82,7 @@ using std::string_view;
 using std::to_string;
 using std::vector;
 using std::unordered_map;
+using std::function;
 
 using u16 = uint16_t;
 
@@ -341,7 +343,7 @@ static void ExtractFieldData(
 
 static void FirstParse(const vector<string>& lines);
 
-static void TranslateReferences(GlobalData& data);
+static string TranslateReferences(string_view value);
 
 namespace KalaMake::Core
 {
@@ -671,8 +673,6 @@ namespace KalaMake::Core
 			"KALAMAKE",
 			LogType::LOG_SUCCESS);
 
-		TranslateReferences(globalData);
-
 		LanguageCore::Compile(globalData);
 	}
 
@@ -738,8 +738,6 @@ namespace KalaMake::Core
 			"Finished first parse! Cleaning up parsed data and parsing for generation.\n",
 			"KALAMAKE",
 			LogType::LOG_SUCCESS);
-
-		TranslateReferences(globalData);
 
 		LanguageCore::Generate(globalData);
 	}
@@ -897,7 +895,7 @@ void ExtractFieldData(
 					"Build path '" + trimmedValue + "' must end with quotes!");
 			}
 
-			trimmedValue = require_quotes(trimmedValue);
+			trimmedValue = TranslateReferences(require_quotes(trimmedValue));
 
 			vector<path> resolvedPaths{};
 			if (trimmedValue.find('*') == string::npos
@@ -953,7 +951,7 @@ void ExtractFieldData(
 			return;
 		}
 
-		vector<string> splitPaths = SplitString(trimmedValue, ", ");
+		vector<string> splitPaths = SplitString(TranslateReferences(trimmedValue), ", ");
 
 		vector<string> result{};
 
@@ -1075,7 +1073,7 @@ void ExtractFieldData(
 			return;
 		}
 
-		vector<string> splitPaths = SplitString(trimmedValue, ", ");
+		vector<string> splitPaths = SplitString(TranslateReferences(trimmedValue), ", ");
 
 		vector<string> result{};
 
@@ -1153,7 +1151,7 @@ void ExtractFieldData(
 		outFieldName = name;
 		outFieldValues = result;
 	}
-	//any field name in references
+	//any field in references category
 	else if (isReference)
 	{
 		if (trimmedValue.empty())
@@ -1183,7 +1181,7 @@ void ExtractFieldData(
 		}
 
 		outFieldName = name;
-		outFieldValues = { trimmedValue };
+		outFieldValues = { TranslateReferences(trimmedValue) };
 	}
 	//all other standard fields with no paths
 	else 
@@ -1227,14 +1225,16 @@ void ExtractFieldData(
 				"Field '" + name + "' is not allowed to have more than one value!");
 		}
 
+		string cleanValue = TranslateReferences(trimmedValue);
+
 		if (name == field_jobs
-			&& !trimmedValue.empty())
+			&& !cleanValue.empty())
 		{
 			unsigned long parsed{};
 
 			try
 			{
-				parsed = scast<int>(stoul(trimmedValue));
+				parsed = scast<int>(stoul(cleanValue));
 			}
 			catch (...)
 			{
@@ -1272,7 +1272,7 @@ void ExtractFieldData(
 			const auto& binaryTypes = KalaMakeCore::GetBinaryTypes();
 
 			BinaryType binaryType{};
-			if (!StringToEnum(trimmedValue, binaryTypes, binaryType)
+			if (!StringToEnum(cleanValue, binaryTypes, binaryType)
 				|| binaryType == BinaryType::B_INVALID)
 			{
 				KalaMakeCore::CloseOnError(
@@ -1285,7 +1285,7 @@ void ExtractFieldData(
 			const auto& buildTypes = KalaMakeCore::GetBuildTypes();
 
 			BuildType buildType{};
-			if (!StringToEnum(trimmedValue, buildTypes, buildType)
+			if (!StringToEnum(cleanValue, buildTypes, buildType)
 				|| buildType == BuildType::B_INVALID)
 			{
 				KalaMakeCore::CloseOnError(
@@ -1298,7 +1298,7 @@ void ExtractFieldData(
 			const auto& compilerLauncherTypes = KalaMakeCore::GetCompilerLauncherTypes();
 
 			CompilerLauncherType compilerLauncherType{};
-			if (!StringToEnum(trimmedValue, compilerLauncherTypes, compilerLauncherType)
+			if (!StringToEnum(cleanValue, compilerLauncherTypes, compilerLauncherType)
 				|| compilerLauncherType == CompilerLauncherType::C_INVALID)
 			{
 				KalaMakeCore::CloseOnError(
@@ -1311,7 +1311,7 @@ void ExtractFieldData(
 			const auto& compilerTypes = KalaMakeCore::GetCompilerTypes();
 
 			CompilerType compilerType{};
-			if (!StringToEnum(trimmedValue, compilerTypes, compilerType)
+			if (!StringToEnum(cleanValue, compilerTypes, compilerType)
 				|| compilerType == CompilerType::C_INVALID)
 			{
 				KalaMakeCore::CloseOnError(
@@ -1324,7 +1324,7 @@ void ExtractFieldData(
 			const auto& standardTypes = KalaMakeCore::GetStandardTypes();
 
 			StandardType standardType{};
-			if (!StringToEnum(trimmedValue, standardTypes, standardType)
+			if (!StringToEnum(cleanValue, standardTypes, standardType)
 				|| standardType == StandardType::S_INVALID)
 			{
 				KalaMakeCore::CloseOnError(
@@ -1334,11 +1334,11 @@ void ExtractFieldData(
 		}
 
 		vector<string> result{};
-		if (trimmedValue.find(',') != string::npos)
+		if (cleanValue.find(',') != string::npos)
 		{
-			result = SplitString(trimmedValue, ", ");
+			result = SplitString(cleanValue, ", ");
 		}
-		else result.push_back(trimmedValue);
+		else result.push_back(cleanValue);
 
 		RemoveDuplicates(result);
 
@@ -2091,7 +2091,89 @@ void FirstParse(const vector<string>& lines)
 	}
 }
 
-void TranslateReferences(GlobalData& data)
+string TranslateReferences(string_view value)
 {
-	
+	//value did not contain any references, skip
+	if (value.find('$') == string_view::npos) return string(value);
+
+	string result = string(value);
+
+	function<void(size_t)> replace_ref;
+
+	replace_ref = [&](size_t start)
+		{
+			size_t refBracketPos = result.find('{', start);
+
+			if (refBracketPos == string::npos)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Failed to find dereference values in field value '" + result + "' because a reference was not followed by a starting bracket!");
+			}
+
+			//find ref start here before the closing bracket and jump to child
+			size_t childRef = result.find('$', refBracketPos + 1);
+			while (childRef != string::npos
+				   && childRef < result.find('}', refBracketPos))
+			{
+				replace_ref(childRef);
+				childRef = result.find('$', refBracketPos + 1);
+			}
+
+			size_t refBracketEndPos = result.find('}', refBracketPos);
+			if (refBracketEndPos == string::npos)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Failed to find dereference values in field value '" + result + "' because a reference value was not closed by a closing bracket!");
+			}
+
+			if (refBracketEndPos == refBracketPos + 1)
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Failed to find dereference values in field value '" + result + "' because a reference had no value between brackets!");
+			}
+
+			string refValue = result.substr(
+				refBracketPos + 1,
+				refBracketEndPos - refBracketPos - 1);
+
+			if (HasAnyWhiteSpace(refValue))
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Failed to find dereference values in field value '" + result + "' because reference '" + refValue + "' contains whitespace characters!");
+			}
+
+			string replacement{};
+			for (const auto& r : globalData.references)
+			{
+				if (r.name == refValue)
+				{
+					replacement = r.value;
+					break;
+				}
+			}
+			if (replacement.empty())
+			{
+				KalaMakeCore::CloseOnError(
+					"KALAMAKE",
+					"Failed to find dereference value '" + refValue + "' in field value '" + result + "' because it has not been added as a reference!");
+			}
+
+			result.replace(
+				start,
+				refBracketEndPos - start + 1,
+				replacement);
+		};
+
+	size_t refPos;
+
+	while ((refPos = result.find('$')) != string::npos)
+	{
+		replace_ref(refPos);
+	}
+
+	return result;
 }

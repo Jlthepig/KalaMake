@@ -2,11 +2,19 @@
 
 #version 1.0
 
+#references
+comm_objcopy: objcopy --remove-section .note.gnu.property
+name_bin: kalamake
+dir_kalacli: _external_shared/KalaCLI
+name_kalacli: KalaCLI1
+dir_release: build/release-
+dir_debug: build/debug-
+
 #global
 compilerlauncher: ccache
 standard: c++20
 binarytype: executable
-binaryname: kalamake
+binaryname: ${name_bin}
 sources: "src"
 headers: "include", "_external_shared"
 warninglevel: normal
@@ -15,27 +23,27 @@ customflags: export-compile-commands
 #profile debug-windows
 compiler: clang-cl
 buildtype: debug
-buildpath: "build/debug-windows"
-links: "_external_shared/KalaCLI/debug/KalaCLI1d.lib"
+buildpath: "${dir_debug}windows"
+links: "${dir_kalacli}/debug/${name_kalacli}d.lib"
 
 #profile release-windows
 compiler: clang-cl
 buildtype: minsizerel
-buildpath: "build/release-windows"
-links: "_external_shared/KalaCLI/release/KalaCLI1.lib"
+buildpath: "${dir_release}windows"
+links: "${dir_kalacli}/release/${name_kalacli}.lib"
 
 #profile debug-linux
 compiler: clang++
 buildtype: debug
-buildpath: "build/debug-linux"
-links: "_external_shared/KalaCLI/debug/libKalaCLI1d.a"
+buildpath: "${dir_debug}linux"
+links: "${dir_kalacli}/debug/lib${name_kalacli}d.a"
 //strips stupid avx requirements that cachyos seems to add for no reason
-postbuildaction: objcopy --remove-section .note.gnu.property build/debug-linux/kalamake
+postbuildaction: ${comm_objcopy} ${dir_debug}linux/${name_bin}
 
 #profile release-linux
 compiler: clang++
 buildtype: minsizerel
-buildpath: "build/release-linux"
-links: "_external_shared/KalaCLI/release/libKalaCLI1.a"
+buildpath: "${dir_release}linux"
+links: "${dir_kalacli}/release/lib${name_kalacli}.a"
 //strips stupid avx requirements that cachyos seems to add for no reason
-postbuildaction: objcopy --remove-section .note.gnu.property build/release-linux/kalamake
+postbuildaction: ${comm_objcopy} ${dir_release}linux/${name_bin}
