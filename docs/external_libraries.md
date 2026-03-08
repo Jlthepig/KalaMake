@@ -5,6 +5,12 @@ These libraries are used for various purposes, their licenses are included in th
 ## Owned by Lost Empire Entertainment (under its KalaKit organization)
 
 | Library                                               | Use case                                                       |
-|-------------------------------------------------------|----------------------------------------------------------------|
+|-------------------------------------------------------|-------------------------------------------------------------------------------|
 | [KalaHeaders](https://github.com/KalaKit/KalaHeaders) | Lightweight, independent header-only scripts for various uses. |
 | [KalaCLI](https://github.com/KalaKit/KalaCLI)         | The template framework for cli command parsing. |
+
+## Not owned by Lost Empire Entertainment
+
+| Library                                          | Use case                  |
+|--------------------------------------------------|---------------------------|
+| [OpenSSL](https://github.com/openssl/openssl)    | Encryption and HTTPS/TLS. |

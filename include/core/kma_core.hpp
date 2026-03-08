@@ -68,8 +68,8 @@ namespace KalaMake::Core
 		//required version category
 		C_VERSION = 1u,
 
-		//optional include paths category
-		C_INCLUDE = 2u,
+		//optional references category
+		C_REFERENCES = 2u,
 
 		//required global fields category
 		C_GLOBAL = 3u,
@@ -327,10 +327,10 @@ namespace KalaMake::Core
 		vector<string> postBuildActions{};
 	};
 
-	struct IncludeData
+	struct ReferenceData
 	{
 		string name{};
-		path value{};
+		string value{};
 	};
 
 	struct GlobalData
@@ -338,8 +338,8 @@ namespace KalaMake::Core
 		//final mixed data from global and/or target user profile
 		ProfileData targetProfile{};
 
-		//what includes are included in this kalamake project
-		vector<IncludeData> includes{};
+		//what references are included in this kalamake project
+		vector<ReferenceData> references{};
 	};
 
 	class KalaMakeCore

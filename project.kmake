@@ -2,16 +2,13 @@
 
 #version 1.0
 
-#include
-kh: "_external_shared"
-
 #global
 compilerlauncher: ccache
 standard: c++20
 binarytype: executable
 binaryname: kalamake
 sources: "src"
-headers: "include", #kh
+headers: "include", "_external_shared"
 warninglevel: normal
 customflags: export-compile-commands
 

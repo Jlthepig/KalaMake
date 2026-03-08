@@ -549,7 +549,7 @@ void Compile_Final(const GlobalData& globalData)
 			vector<path> compiledObj{};
 			mutex m_compiledObj;
 
-			Log::Print("\n==========================================================================================\n");
+			Log::Print("\n===========================================================================\n");
 
 			auto needs_compile = [](
 				const path& source,
@@ -944,7 +944,7 @@ void Compile_Final(const GlobalData& globalData)
 					return false;
 				};
 
-			Log::Print("==========================================================================================\n");
+			Log::Print("===========================================================================\n");
 
 			if (needs_link(outputPath, objFiles))
 			{
@@ -981,7 +981,7 @@ void Compile_Final(const GlobalData& globalData)
 
 	if (ContainsValue(globalData.targetProfile.customFlags,CustomFlag::F_EXPORT_COMPILE_COMMANDS))
 	{
-		Log::Print("\n==========================================================================================\n");
+		Log::Print("\n===========================================================================\n");
 
 		Log::Print(
 			"Starting to create compile_commands.json.",
@@ -1046,7 +1046,7 @@ void Compile_Final(const GlobalData& globalData)
 
 	if (!globalData.targetProfile.postBuildActions.empty())
 	{
-		Log::Print("\n==========================================================================================\n");
+		Log::Print("\n===========================================================================\n");
 
 		Log::Print(
 			"Starting to run post build actions.",

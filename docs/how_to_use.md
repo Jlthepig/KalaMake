@@ -1,0 +1,270 @@
+# How to use
+
+This document explains what KalaMake is in more depth, what categories and fields are available and how to use them.
+
+## Introduction
+
+KalaMake is a standalone tool for building software and libraries from source code. It can replace tools such as CMake, Premake, Make or Ninja when you want a lightweight but fast and easy-to-use build script and CLI combination without relying on external build tools, generators or additional setup.
+
+KalaMake uses files with the `.kmake` extension to define build configurations. A `.kmake` file is a plain text file that can be edited with any text editor and it is not a custom binary format.
+
+The structure of a `.kmake` file is based on two core concepts: **categories** and **fields**. Comments are written using `//` and can be placed at the start of an empty line or at the end of any  existing line. Comments and empty lines are ignored during parsing.
+
+Each category may only appear once in a `.kmake` file. The **version** and **global** categories must always be present. Each category except the **version** category contains fields and most fields require a value separated by `: `. Field and category order is irrelevant and you can structure it however you like as long as you understand that the content of one category ends at the start of the next line that starts with `#`.
+
+Each `.kmake` file must contain the `#version` and `#global` categories, `#references` and `#profile` are optional.
+
+## Version category
+
+The version category tells KalaMake what the available fields and categories are. It prevents older versions from using new fields or categories that version did not yet have or from using deprecated or removed fields and categories in newer versions. You must add a version number after the `#version` category name.
+
+Available versions:
+    - 1.0
+    
+Example:
+```
+#version 1.0
+```
+
+---
+
+## References category
+
+The references category tells KalaMake what the available references are for the rest of this `.kmake` file. Defined references are added with `${myref}` and defined in the references category. Each reference field name must be unique, reference field values must not contain more than one value.
+
+Example:
+```
+#references
+myref: 123456
+myref2: 334455
+
+#global
+compiler: ${myref}
+standard: ${myref2}
+```
+
+---
+
+## Global category
+
+The global category describes global state across all user-defined profiles so no profiles need to duplicate the same field again.
+
+Available fields:
+    - binarytype
+    - compilerllauncher (optional)
+    - compiler
+    - standard
+    - targettype (optional)
+    - jobs (optional)
+    - binaryname
+    - buildtype
+    - buildpath
+    - sources
+    - headers (optional)
+    - links (optional)
+    - warninglevel (optional)
+    - defines (optional)
+    - compileflags (optional)
+    - linkflags (optional)
+    - customflags (optional)
+    - postbuildaction (optional)
+    
+### binarytype
+
+Describes which binary type to build as. Only one value is allowed.
+
+Available values:
+    - executable - creates an executable
+    - static - creates a static .lib (.a on linux)
+    - shared - creates a shared dll + inline .lib (.so on linux)
+    
+### compilerlauncher
+
+Describes which compiler launcher to use for the compiler to cache object files, scripts and headers. Only one value is allowed.
+
+Available values:
+    - ccache - reuses previous compile results
+    - sccache - same as ccache but supports shared cache servers
+    - distcc - sends compile jobs to other servers
+    - icecc - same as distcc but ships compiler toolchain too
+    
+### compiler
+
+Describes which compiler to use. Only one value is allowed.
+
+Available values:
+    - cl
+    - clang-cl
+    - gcc
+    - g++
+    - clang
+    - clang-cl
+    - zig
+    
+### standard
+
+Describes which language standard to use. Only one value is allowed.
+
+Available values:
+    - c89
+    - c99
+    - c11
+    - c17
+    - c23
+    - clatest
+    - c++98
+    - c++03
+    - c++11
+    - c++14
+    - c++17
+    - c++20
+    - c++23
+    - c++26
+    - c++latest
+    
+### targettype
+
+Describes which target to aim for, used for cross-compilation. Only one value is allowed.
+
+Available values:
+    - windows - build a windows binary on linux
+    - linux - build a linux binary on windows
+    
+### jobs
+
+Describes how many jobs to use for the compilation pass. More jobs = more parallel threads for each source script. It is recommended to have up to 2x as many jobs as you have logical cores available on your cpu, limited from 1 to 65535. Only one value is allowed.
+
+### binaryname
+
+Give a name for what your binary will be called. Extension is not needed. Only one value is allowed.
+
+### buildtype
+
+Describes what output target to aim for, adds the chosen build type flags. Only one value is allowed.
+
+Available values:
+    - debug - full debug symbols, no size or speed optimization flags
+    - release - release output, optimizes for speed
+    - reldebug - release output, optimizes for speed, keeps debug symbols
+    - minsizerel - release output, optimizes for size
+    
+### buildpath
+
+Describes what folder to build the binary into. Accepts relative or full paths. Must be quoted with `"`. Only one value is allowed.
+
+### sources
+
+Describes what sources this binary will use. Supports quoted relative and full paths to files and folders, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
+
+### headers
+
+Describes what headers this binary will use. Supports quoted relative and full paths to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
+
+### links
+
+Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `/` are added internally to system library paths. Can add multiple values.
+
+### warninglevel
+
+Describes how strict compiler warning levels should be. Only one value is allowed.
+
+Available values:
+    - none - no warnings
+    - basic - very basic warnings
+    - normal - common, useful warnings, recommended default
+    - strong - strong warnings
+    - strict - very strict, high signal warnings
+    - all - all warnings
+    
+### defines
+
+Describes what defines to pass to the compiler. Can add multiple values.
+
+### compileflags
+
+Describes what flags will be added during the compile stage. You must manually add the `-` or `/` in front of the flag yourself. Can add multiple values.
+
+### linkflags
+
+Describes what flags will be added during the link stage. You must manually add the `-` or `/` in front of the flag yourself. Can add multiple values.
+
+### customflags
+
+Describes what KalaMake-specific flags will be added that will add extra actions. You do not need to add the `-` or `/` in front of the flag. Can add multiple values.
+
+Available values:
+    - msvc-static-runtime - uses /MT or /MTd with cl and clang-cl instead of the default /MD or /MDd, unused in Linux
+    - warnings-as-errors - all compiler or linker displayed warnings will be displayed as errors and will stop the build if encountered
+    - use-clang-zig-msvc - uses the `x86_64-windows-msvc` target instead of the `x86_64-windows-gnu` default when compiling a Windows binary on Linux
+    - export-compile-commands - creates the compile-commands.json file at the build dir of your profile
+    
+### postbuildaction
+
+Describes what console-triggered action to do after the compilation and linking succeeds.  Only one value is allowed but more than one postbuildaction can be added to the profile.
+
+Example:
+```
+#global
+compiler: clang-cl
+standard: c++20
+binarytype: executable
+binaryname: myexe
+buildtype: release
+buildpath: "build"
+sources: "src/main.cpp"
+```
+
+---
+
+## Profile category
+
+The profile category describes an override to the global category or additional data the global category did not define. Duplicated fields already found in the global profile that were added to a user profile are overridden if they contain a single value, otherwise they are appended to the user profile. You can choose to compile with the global profile or with a specific user-defined profile. You must add a profile name after the `#profile` category name, you can add as many profiles as you want as long as they all have unique names. All global category fields can be added to each profile.
+
+Example:
+```
+//Build script for use with kalamake. Read more at https://github.com/kalakit/kalamake
+
+#version 1.0
+
+#references
+ext: "_external_shared"
+kalacli: "_external_shared/KalaCLI"
+
+#global
+compilerlauncher: ccache
+standard: c++20
+binarytype: executable
+binaryname: kalamake
+sources: "src"
+headers: "include", ${ext}
+warninglevel: normal
+customflags: export-compile-commands
+
+#profile debug-windows
+compiler: clang-cl
+buildtype: debug
+buildpath: "build/debug-windows"
+links: "${kalacli}/debug/KalaCLI1d.lib"
+
+#profile release-windows
+compiler: clang-cl
+buildtype: minsizerel
+buildpath: "build/release-windows"
+links: "${kalacli}/release/KalaCLI1.lib"
+
+#profile debug-linux
+compiler: clang++
+buildtype: debug
+buildpath: "build/debug-linux"
+links: "${kalacli}/debug/libKalaCLI1d.a"
+//strips stupid avx requirements that cachyos seems to add for no reason
+postbuildaction: objcopy --remove-section .note.gnu.property build/debug-linux/kalamake
+
+#profile release-linux
+compiler: clang++
+buildtype: minsizerel
+buildpath: "build/release-linux"
+links: "${kalacli}/release/libKalaCLI1.a"
+//strips stupid avx requirements that cachyos seems to add for no reason
+postbuildaction: objcopy --remove-section .note.gnu.property build/release-linux/kalamake
+```
