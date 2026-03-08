@@ -33,7 +33,7 @@ static void AddExternalCommands()
 		};
 	auto version = [](const vector<string>& params)
 		{
-			Log::Print("prerelease 8");
+			Log::Print("prerelease 9");
 		};
 
 	CommandManager::AddCommand(
