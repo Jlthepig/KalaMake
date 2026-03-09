@@ -10,9 +10,11 @@ KalaMake uses files with the `.kmake` extension to define build configurations. 
 
 The structure of a `.kmake` file is based on two core concepts: **categories** and **fields**. Comments are written using `//` and can be placed at the start of an empty line or at the end of any  existing line. Comments and empty lines are ignored during parsing.
 
-Each category may only appear once in a `.kmake` file. The **version** and **global** categories must always be present. Each category except the **version** category contains fields and most fields require a value separated by `: `. Field and category order is irrelevant and you can structure it however you like as long as you understand that the content of one category ends at the start of the next line that starts with `#`.
+Each category may only appear once in a `.kmake` file except profiles as long as their name is unique. The **version** and **global** categories must always be present. Each category except the **version** category contains fields and most fields require a value separated by `: `. Field and category order is irrelevant and you can structure it however you like as long as you understand that the content of one category ends at the start of the next line that starts with `#`. Commas split values only for fields that support multiple values. References do not use commas as value separators.
 
 Each `.kmake` file must contain the `#version` and `#global` categories, `#references` and `#profile` are optional.
+
+An object file for C/C++ may only be recompiled if its source file or any of the header dirs you've included is newer than the already built object file. An executable, static or shared lib for C/C++ may only be relinked if one of its linked non-system libraries or one of its objects is newer than the already built output.
 
 ## Version category
 
@@ -30,7 +32,7 @@ Example:
 
 ## References category
 
-The references category tells KalaMake what the available references are for the rest of this `.kmake` file. Defined references are added with `${myref}` and defined in the references category. Each reference field name must be unique, reference field values must not contain more than one value.
+The references category tells KalaMake what the available references are for the rest of this `.kmake` file. Defined references are added with `${myref}` and defined in the references category. Each reference field name must be unique, reference field values must not contain more than one value. References are special - they allow the use of commas but only as the value of a reference, not for splitting values like with sources, headers, links, linkflags, compileflags or customflags.
 
 Example:
 ```
@@ -161,7 +163,7 @@ Describes what headers this binary will use. Supports quoted relative and full p
 
 ### links
 
-Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `/` are added internally to system library paths. Can add multiple values.
+Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `.lib` are added in front of the link internally to system library paths. Can add multiple values.
 
 ### warninglevel
 
@@ -177,25 +179,27 @@ Available values:
     
 ### defines
 
-Describes what defines to pass to the compiler. Can add multiple values.
+Describes what defines to pass to the compiler. `-D` and `/D` are added in front of the define internally. Can add multiple values.
 
 ### compileflags
 
-Describes what flags will be added during the compile stage. You must manually add the `-` or `/` in front of the flag yourself. Can add multiple values.
+Describes what flags will be added during the compile stage. `-` and `/` are added in front of the flag internally. Can add multiple values.
 
 ### linkflags
 
-Describes what flags will be added during the link stage. You must manually add the `-` or `/` in front of the flag yourself. Can add multiple values.
+Describes what flags will be added during the link stage. `-` and `/` are added in front of the flag internally. Can add multiple values.
 
 ### customflags
 
-Describes what KalaMake-specific flags will be added that will add extra actions. You do not need to add the `-` or `/` in front of the flag. Can add multiple values.
+Describes what KalaMake-specific flags will be added that will add extra actions. Can add multiple values.
 
 Available values:
-    - msvc-static-runtime - uses /MT or /MTd with cl and clang-cl instead of the default /MD or /MDd, unused in Linux
+    - export-compile-commands - creates the compile-commands.json file at the build dir of your profile
     - warnings-as-errors - all compiler or linker displayed warnings will be displayed as errors and will stop the build if encountered
     - use-clang-zig-msvc - uses the `x86_64-windows-msvc` target instead of the `x86_64-windows-gnu` default when compiling a Windows binary on Linux
-    - export-compile-commands - creates the compile-commands.json file at the build dir of your profile
+    - msvc-static-runtime - uses /MT or /MTd with cl and clang-cl instead of the default /MD or /MDd, unused in Linux
+    - linux-strip-symbols - strips symbols from output, unused in msvc
+    - linux-use-origin-as-lib-dir - allow to use origin as lib dir, unused in msvc
     
 ### postbuildaction
 

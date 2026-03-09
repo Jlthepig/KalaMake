@@ -5,5 +5,5 @@ These libraries are used for various purposes, their licenses are included in th
 ## Owned by Lost Empire Entertainment (under its KalaKit organization)
 
 | Library                                                         | Use case                                                       |
-|--------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+|-----------------------------------------------------------------|----------------------------------------------------------------|
 | [KalaHeaders](https://github.com/KalaKit/KalaHeaders)           | Lightweight, independent header-only scripts for various uses. |

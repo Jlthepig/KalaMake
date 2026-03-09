@@ -262,20 +262,30 @@ namespace KalaMake::Core
 	{
 		F_INVALID = 0u,
 
-		//embed the C/C++ runtime into the binary,
-		//dynamic runtime is enabled by default unless this is added,
-		//only for C and C++, not used in linux
-		F_MSVC_STATIC_RUNTIME = 1u,
+		//creates compile_commands.json in the same directory as the kmake file
+		F_EXPORT_COMPILE_COMMANDS = 1u,
 
-		//treats all warnings as errors
+		//treats all warnings as errors,
+		//only for C and C++
 		F_WARNINGS_AS_ERRORS = 2u,
 
 		//uses msvc instead of the default gnu for cross-compiling linux binary to windows binary,
-		//not usable for msvc compilers, not usable outside of linux and c/c++
+		//only for C and C++, not used in msvc
 		F_USE_CLANG_ZIG_MSVC = 3u,
 
-		//creates compile_commands.json in the same directory as the kmake file
-		F_EXPORT_COMPILE_COMMANDS = 4u,
+		//embed the C/C++ runtime into the binary,
+		//dynamic runtime is enabled by default unless this is added,
+		//only for C and C++, not used in linux
+		F_MSVC_STATIC_RUNTIME = 4u,
+
+		//strips symbols from output,
+		//intended only for release and minsizerel,
+		//only for C and C++, not used in msvc
+		F_LINUX_STRIP_SYMBOLS = 5u,
+		
+		//allow to use origin as lib dir,
+		//only for C and C++, not used in msvc
+		F_LINUX_USE_ORIGIN_AS_LIB_DIR = 6u
 	};
 	
 	struct ProfileData

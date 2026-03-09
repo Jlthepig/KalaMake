@@ -55,6 +55,7 @@ using std::filesystem::exists;
 using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
 using std::filesystem::last_write_time;
+using std::filesystem::file_time_type;
 using std::min;
 using std::atomic;
 using std::thread;
@@ -242,6 +243,10 @@ void Compile_Final(const GlobalData& globalData)
 		? "/"
 		: "-";
 
+	//
+	// COMPILE
+	//
+
 	auto compile = [&isMSVC, &frontArg, &globalData]() -> vector<path>
 		{
 			string command{};
@@ -344,7 +349,7 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				string runtimeFlag = ContainsValue(
 					globalData.targetProfile.customFlags, 
-					CustomFlag::F_MSVC_STATIC_RUNTIME) ? "/MT" : "/MD";
+					CustomFlag::F_MSVC_STATIC_RUNTIME) ? "MT" : "MD";
 				
 				finalFlags.push_back(globalData.targetProfile.buildType == KalaMake::Core::BuildType::B_DEBUG
 					? runtimeFlag + "d"
@@ -355,8 +360,8 @@ void Compile_Final(const GlobalData& globalData)
 				globalData.targetProfile.customFlags, 
 				CustomFlag::F_WARNINGS_AS_ERRORS))
 			{
-				if (isMSVC) finalFlags.push_back("/WX");
-				else        finalFlags.push_back("-Werror");
+				if (isMSVC) finalFlags.push_back("WX");
+				else        finalFlags.push_back("Werror");
 			}
 
 			switch (globalData.targetProfile.buildType)
@@ -365,13 +370,13 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("/Zi");
-					finalFlags.push_back("/Od");
+					finalFlags.push_back("Zi");
+					finalFlags.push_back("Od");
 				}
 				else
 				{
-					finalFlags.push_back("-g");
-					finalFlags.push_back("-O0");
+					finalFlags.push_back("g");
+					finalFlags.push_back("O0");
 				}
 				break;
 			}
@@ -379,13 +384,13 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("/Zi");
-					finalFlags.push_back("/O2");
+					finalFlags.push_back("Zi");
+					finalFlags.push_back("O2");
 				}
 				else
 				{
-					finalFlags.push_back("-g");
-					finalFlags.push_back("-O2");
+					finalFlags.push_back("g");
+					finalFlags.push_back("O2");
 				}
 				break;
 			}
@@ -393,12 +398,12 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("/O2");
+					finalFlags.push_back("O2");
 				}
 				else
 				{
-					finalFlags.push_back("-g0");
-					finalFlags.push_back("-O2");
+					finalFlags.push_back("g0");
+					finalFlags.push_back("O2");
 				}
 				break;
 			}
@@ -406,12 +411,12 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("/O1");
+					finalFlags.push_back("O1");
 				}
 				else
 				{
-					finalFlags.push_back("-g0");
-					finalFlags.push_back("-Os");
+					finalFlags.push_back("g0");
+					finalFlags.push_back("Os");
 				}
 				break;
 			}
@@ -423,28 +428,28 @@ void Compile_Final(const GlobalData& globalData)
 			{
 			case WarningLevel::W_BASIC:
 			{
-				if (isMSVC) finalFlags.push_back("/W1");
-				else        finalFlags.push_back("-Wall");
+				if (isMSVC) finalFlags.push_back("W1");
+				else        finalFlags.push_back("Wall");
 				break;
 			}
 			case WarningLevel::W_NORMAL:
 			{
-				if (isMSVC) finalFlags.push_back("/W3");
+				if (isMSVC) finalFlags.push_back("W3");
 				else
 				{
-					finalFlags.push_back("-Wall");
-					finalFlags.push_back("-Wextra");
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
 				}
 				break;
 			}
 			case WarningLevel::W_STRONG:
 			{
-				if (isMSVC) finalFlags.push_back("/W4");
+				if (isMSVC) finalFlags.push_back("W4");
 				else
 				{
-					finalFlags.push_back("-Wall");
-					finalFlags.push_back("-Wextra");
-					finalFlags.push_back("-Wpedantic");
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
 				}
 				break;
 			}
@@ -452,35 +457,35 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				if (isMSVC)
 				{
-					finalFlags.push_back("/W4");
-					finalFlags.push_back("/permissive-");
+					finalFlags.push_back("W4");
+					finalFlags.push_back("permissive-");
 				}
 				else
 				{
-					finalFlags.push_back("-Wall");
-					finalFlags.push_back("-Wextra");
-					finalFlags.push_back("-Wpedantic");
-					finalFlags.push_back("-Wconversion");
-					finalFlags.push_back("-Wsign-conversion");
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
+					finalFlags.push_back("Wconversion");
+					finalFlags.push_back("Wsign-conversion");
 				}
 				break;
 			}
 			case WarningLevel::W_ALL:
 			{
-				if (isMSVC) finalFlags.push_back("/Wall");
+				if (isMSVC) finalFlags.push_back("Wall");
 				else if (globalData.targetProfile.compiler == CompilerType::C_CLANG
 						|| globalData.targetProfile.compiler == CompilerType::C_CLANGPP
 						|| globalData.targetProfile.compiler == CompilerType::C_ZIG)
 				{
-					finalFlags.push_back("-Weverything");
+					finalFlags.push_back("Weverything");
 				}
 				else
 				{
-					finalFlags.push_back("-Wall");
-					finalFlags.push_back("-Wextra");
-					finalFlags.push_back("-Wpedantic");
-					finalFlags.push_back("-Wconversion");
-					finalFlags.push_back("-Wsign-conversion");
+					finalFlags.push_back("Wall");
+					finalFlags.push_back("Wextra");
+					finalFlags.push_back("Wpedantic");
+					finalFlags.push_back("Wconversion");
+					finalFlags.push_back("Wsign-conversion");
 				}
 				break;
 			}
@@ -491,7 +496,7 @@ void Compile_Final(const GlobalData& globalData)
 			RemoveDuplicates(finalFlags);
 			for (const auto& f : finalFlags)
 			{
-				command += " " + f;
+				command += " " + frontArg + f;
 			}
 
 			//set defines
@@ -551,14 +556,31 @@ void Compile_Final(const GlobalData& globalData)
 
 			Log::Print("\n===========================================================================\n");
 
-			auto needs_compile = [](
+			auto headers_up_to_date = [&globalData](const auto& t) -> bool
+				{
+					for (const auto& h : globalData.targetProfile.headers)
+					{
+						if (last_write_time(h) > t) return false;
+					}
+
+					return true;
+				};
+
+			auto needs_compile = [headers_up_to_date](
 				const path& source,
 				const path& object
 				) -> bool
 				{
+					bool objExists = exists(object);
+
+					const auto t = objExists
+						? last_write_time(object)
+						: file_time_type{};
+
 					return 
-						!exists(object)
-						|| last_write_time(source) > last_write_time(object);
+						!objExists
+						|| last_write_time(source) > t
+						|| !headers_up_to_date(t);
 				};
 
 			auto compile = [
@@ -657,7 +679,11 @@ void Compile_Final(const GlobalData& globalData)
 			return compiledObj;
 		};
 
-	auto link = [&isMSVC, &globalData](const vector<path>& objFiles) -> void
+	//
+	// LINK
+	//
+
+	auto link = [&isMSVC, &globalData, &frontArg](const vector<path>& objFiles) -> void
 		{
 			string sharedArg = globalData.targetProfile.binaryType == BinaryType::B_SHARED
 				? (isMSVC ? "/LD" : "-shared")
@@ -867,34 +893,39 @@ void Compile_Final(const GlobalData& globalData)
 			vector<string> finalFlags = globalData.targetProfile.linkFlags;
 
 #ifdef __linux__
-			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC
+			if (ContainsValue(globalData.targetProfile.customFlags,CustomFlag::F_LINUX_USE_ORIGIN_AS_LIB_DIR)
+				&& globalData.targetProfile.binaryType != BinaryType::B_STATIC
 				&& globalData.targetProfile.targetType != TargetType::T_WINDOWS)
 			{
 				//set current dir .so flags for linux
-				finalFlags.push_back("-Wl,-rpath,'$ORIGIN'");
+				finalFlags.push_back("Wl,-rpath,'$ORIGIN'");
 			}
 #endif
 
 			if (globalData.targetProfile.binaryType != BinaryType::B_STATIC)
 			{
-				if (isMSVC
-					&& (globalData.targetProfile.buildType == BuildType::B_DEBUG
-					|| globalData.targetProfile.buildType == BuildType::B_RELDEBUG))
-				{
-					finalFlags.push_back("/DEBUG");
-				}
+				//strip symbols in linux
 				if (!isMSVC
-					&& (globalData.targetProfile.buildType == BuildType::B_RELEASE
-					|| globalData.targetProfile.buildType == BuildType::B_MINSIZEREL))
+					&& ContainsValue(globalData.targetProfile.customFlags,CustomFlag::F_LINUX_STRIP_SYMBOLS))
 				{
-					finalFlags.push_back("-Wl,-s");
+					finalFlags.push_back("Wl,--strip-unneeded");
+				}
+
+				if (isMSVC)
+				{
+					if (globalData.targetProfile.buildType == KalaMake::Core::BuildType::B_DEBUG
+						|| globalData.targetProfile.buildType == KalaMake::Core::BuildType::B_RELDEBUG)
+					{
+						finalFlags.push_back("DEBUG");
+					}
+					else finalFlags.push_back("RELEASE");
 				}
 			}
 
 			RemoveDuplicates(finalFlags);
 			for (const auto& f : finalFlags)
 			{
-				command += " " + f;
+				command += " " + frontArg + f;
 			}
 
 			//set links
@@ -976,8 +1007,16 @@ void Compile_Final(const GlobalData& globalData)
 			}
 			};
 
+	//
+	// COMPILE AND LINK
+	//
+
 	vector<path> objFiles = compile();
 	if (!objFiles.empty()) link(objFiles);
+
+	//
+	// EXPORT COMPILE COMMANDS
+	//
 
 	if (ContainsValue(globalData.targetProfile.customFlags,CustomFlag::F_EXPORT_COMPILE_COMMANDS))
 	{
@@ -1043,6 +1082,10 @@ void Compile_Final(const GlobalData& globalData)
 			"LANGUAGE_C_CPP",
 			LogType::LOG_SUCCESS);
 	}
+
+	//
+	// POST BUILD ACTIONS
+	//
 
 	if (!globalData.targetProfile.postBuildActions.empty())
 	{

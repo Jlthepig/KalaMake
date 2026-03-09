@@ -163,10 +163,12 @@ constexpr string_view warning_level_strong = "strong";
 constexpr string_view warning_level_strict = "strict";
 constexpr string_view warning_level_all    = "all";
 
-constexpr string_view custom_msvc_static_runtime = "msvc-static-runtime";
+constexpr string_view custom_export_comp_comm    = "export-compile-commands";
 constexpr string_view custom_warnings_as_err     = "warnings-as-errors";
 constexpr string_view custom_clang_zig_msvc      = "use-clang-zig-msvc";
-constexpr string_view custom_export_comp_comm    = "export-compile-commands";
+constexpr string_view custom_msvc_static_runtime = "msvc-static-runtime";
+constexpr string_view custom_linux_strip_symbols = "linux-strip-symbols";
+constexpr string_view custom_linux_use_origin    = "linux-use-origin-as-lib-dir";
 
 //kma path is the root directory where the kmake file is stored at
 static path kmaPath{};
@@ -470,10 +472,12 @@ namespace KalaMake::Core
 	//their true meanings change depending on which OS is used
 	static const unordered_map<CustomFlag, string_view, EnumHash<CustomFlag>> customFlags =
 	{
-		{ CustomFlag::F_MSVC_STATIC_RUNTIME,     custom_msvc_static_runtime },
-		{ CustomFlag::F_WARNINGS_AS_ERRORS,      custom_warnings_as_err },
-		{ CustomFlag::F_USE_CLANG_ZIG_MSVC,      custom_clang_zig_msvc },
-		{ CustomFlag::F_EXPORT_COMPILE_COMMANDS, custom_export_comp_comm }
+		{ CustomFlag::F_EXPORT_COMPILE_COMMANDS,     custom_export_comp_comm },
+		{ CustomFlag::F_WARNINGS_AS_ERRORS,          custom_warnings_as_err },
+		{ CustomFlag::F_USE_CLANG_ZIG_MSVC,          custom_clang_zig_msvc },
+		{ CustomFlag::F_MSVC_STATIC_RUNTIME,         custom_msvc_static_runtime },
+		{ CustomFlag::F_LINUX_STRIP_SYMBOLS,         custom_linux_strip_symbols },
+		{ CustomFlag::F_LINUX_USE_ORIGIN_AS_LIB_DIR, custom_linux_use_origin }
 	};
 
 	void KalaMakeCore::OpenFile(
