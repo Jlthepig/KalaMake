@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "KalaHeaders/core_utils.hpp"
+#include "core_utils.hpp"
 
 namespace KalaMake::Generate
 {

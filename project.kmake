@@ -3,12 +3,13 @@
 #version 1.0
 
 #references
-comm_objcopy: objcopy --remove-section .note.gnu.property
 name_bin: kalamake
-dir_kalacli: _external_shared/KalaCLI
-name_kalacli: KalaCLI1
 dir_release: build/release-
 dir_debug: build/debug-
+name_kc: KalaCLI1
+dir_kc_rel: _external_shared/KalaCLI/release
+dir_kc_deb: _external_shared/KalaCLI/debug
+comm_objcopy: objcopy --remove-section .note.gnu.property
 
 #global
 compilerlauncher: ccache
@@ -16,7 +17,7 @@ standard: c++20
 binarytype: executable
 binaryname: ${name_bin}
 sources: "src"
-headers: "include", "_external_shared"
+headers: "include", "_external_shared/KalaHeaders", "_external_shared/KalaCLI/include"
 warninglevel: normal
 customflags: export-compile-commands
 
@@ -24,19 +25,19 @@ customflags: export-compile-commands
 compiler: clang-cl
 buildtype: debug
 buildpath: "${dir_debug}windows"
-links: "${dir_kalacli}/debug/${name_kalacli}d.lib"
+links: "${dir_kc_deb}/${name_kc}.lib"
 
 #profile release-windows
 compiler: clang-cl
 buildtype: minsizerel
 buildpath: "${dir_release}windows"
-links: "${dir_kalacli}/release/${name_kalacli}.lib"
+links: "${dir_kc_rel}/${name_kc}.lib"
 
 #profile debug-linux
 compiler: clang++
 buildtype: debug
 buildpath: "${dir_debug}linux"
-links: "${dir_kalacli}/debug/lib${name_kalacli}d.a"
+links: "${dir_kc_deb}/lib${name_kc}d.a"
 //strips stupid avx requirements that cachyos seems to add for no reason
 postbuildaction: ${comm_objcopy} ${dir_debug}linux/${name_bin}
 
@@ -44,7 +45,7 @@ postbuildaction: ${comm_objcopy} ${dir_debug}linux/${name_bin}
 compiler: clang++
 buildtype: minsizerel
 buildpath: "${dir_release}linux"
-links: "${dir_kalacli}/release/lib${name_kalacli}.a"
+links: "${dir_kc_rel}/lib${name_kc}.a"
 //strips stupid avx requirements that cachyos seems to add for no reason
 postbuildaction: ${comm_objcopy} ${dir_release}linux/${name_bin}
 postbuildaction: strip --strip-unneeded ${dir_release}linux/${name_bin}

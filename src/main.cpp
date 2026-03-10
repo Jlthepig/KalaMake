@@ -3,10 +3,10 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "KalaHeaders/log_utils.hpp"
+#include "log_utils.hpp"
 
-#include "KalaCLI/include/core.hpp"
-#include "KalaCLI/include/command.hpp"
+#include "kc_core.hpp"
+#include "kc_command.hpp"
 
 #include "core/kma_core.hpp"
 
