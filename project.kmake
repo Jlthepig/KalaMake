@@ -6,7 +6,7 @@
 name_bin: kalamake
 dir_release: build/release-
 dir_debug: build/debug-
-name_kc: KalaCLI1
+name_kc: kalacli
 dir_kc_rel: _external_shared/KalaCLI/release
 dir_kc_deb: _external_shared/KalaCLI/debug
 comm_objcopy: objcopy --remove-section .note.gnu.property
