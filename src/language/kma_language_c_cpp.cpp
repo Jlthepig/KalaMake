@@ -626,11 +626,15 @@ void Compile_Final(const GlobalData& globalData)
 				{
 					if (ContainsValue(globalData.targetProfile.customFlags,CustomFlag::F_EXPORT_COMPILE_COMMANDS))
 					{
+						path fullBuildPath = buildPath.is_absolute()
+							? buildPath
+							: current_path() / buildPath;
+
 						for (int i = 0; i < globalData.targetProfile.sources.size(); i++)
 						{
 							const path& s = globalData.targetProfile.sources[i];
 
-							path objPath = buildPath / (s.stem().string() + extension);
+							path objPath = fullBuildPath / (s.stem().string() + extension);
 							
 							string perFileCommand = command;
 
@@ -639,7 +643,7 @@ void Compile_Final(const GlobalData& globalData)
 
 							commands.push_back(
 							{
-								.dir = globalData.targetProfile.buildPath,
+								.dir = fullBuildPath,
 								.command = RemoveFromString(perFileCommand, "\"", true),
 								.file = s,
 								.output = objPath.string()

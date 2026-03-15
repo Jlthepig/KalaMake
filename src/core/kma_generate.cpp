@@ -61,10 +61,11 @@ namespace KalaMake::Core
 
         auto fix_slashes = [&isMSVC](string_view input) -> string
 			{
-                string l = ReplaceFromString(string(input), "\\", "/", true);
-                if (isMSVC) l = ReplaceFromString(l, "/", "\\\\", true);
-
-                return l;
+                return ReplaceFromString(
+                    string(input), 
+                    "\\", 
+                    (isMSVC ? "\\\\" : "/"), 
+                    true);
 			};
 
 		auto fix_json_quotes = [](string_view input) -> string
@@ -81,12 +82,12 @@ namespace KalaMake::Core
 			string cleanFile = fix_json_quotes(fix_slashes(s.file.string()));
 			string cleanOut = fix_json_quotes(fix_slashes(s.output));
 
-			out << "        {\n";
-			out << "            \"directory\": \"" << cleanDir  << "\",\n";
-			out << "            \"command\": \""   << cleanComm << "\",\n";
-			out << "            \"file\": \""      << cleanFile << "\",\n";
-			out << "            \"output\": \""    << cleanOut  << "\"\n";
-			out << "        }";
+			out << "    {\n";
+			out << "        \"directory\": \"" << cleanDir  << "\",\n";
+			out << "        \"command\": \""   << cleanComm << "\",\n";
+			out << "        \"file\": \""      << cleanFile << "\",\n";
+			out << "        \"output\": \""    << cleanOut  << "\"\n";
+			out << "    }";
 
 			if (i + 1 < commands.size()) out << ",";
 
@@ -134,10 +135,11 @@ namespace KalaMake::Core
 
         auto fix_slashes = [&isMSVC](string_view input) -> string
 			{
-                string l = ReplaceFromString(string(input), "\\", "/", true);
-                if (isMSVC) l = ReplaceFromString(l, "/", "\\\\", true);
-
-                return l;
+                return ReplaceFromString(
+                    string(input), 
+                    "\\", 
+                    (isMSVC ? "\\\\" : "/"), 
+                    true);
 			};
 
         auto remove_useless_lines = [](vector<string>& fields) -> void
