@@ -308,7 +308,7 @@ namespace KalaMake::Core
 #ifdef _WIN32
                 "            \"console\": \"integratedTerminal\"",
 #else
-                "            \"MIMode\": \"gdb\"",
+                "            \"MIMode\": \"gdb\",",
                 "            \"miDebuggerPath\": \"/usr/bin/gdb\"",
 #endif
                 "        },"
