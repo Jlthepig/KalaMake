@@ -204,7 +204,9 @@ Available values:
 
 Describes what console-triggered action to do after the compilation and linking succeeds.  Only one value is allowed but more than one postbuildaction can be added to the profile.
 
-Example:
+---
+
+Minimal global profile example:
 ```
 #global
 compiler: clang-cl
