@@ -36,12 +36,12 @@ namespace KalaMake::Core
         const path& buildPath,
         const vector<CompileCommand>& commands)
     {
+		path compComm = buildPath / "compile_commands.json";
+
 		Log::Print(
-			"Starting to create compile_commands.json.",
+			"Starting to create compile commands file at '" + compComm.string() + "'.",
 			"GENERATE_COMP_COMM",
 			LogType::LOG_INFO);
-
-		path compComm = buildPath / "compile_commands.json";
 
 		if (exists(compComm))
 		{

@@ -182,8 +182,7 @@ namespace KalaMake::Core
 		CPP_17 = 11u,
 		CPP_20 = 12u,
 		CPP_23 = 13u,
-		CPP_26 = 14u,
-		CPP_LATEST = 15u
+		CPP_26 = 14u
 	};
 
 	//Allowed target types that can be added to the targettype field

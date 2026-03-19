@@ -99,9 +99,11 @@ static void GenerateSteps(
 
 	if (canGenerateCompComm)
 	{
+		path projectFileDir = globalData.projectFile.parent_path();
+
 		Generate::GenerateCompileCommands(
 			isMSVC,
-			globalData.targetProfile.buildPath,
+			projectFileDir,
 			commands);
 
 		if (canGenerateVSCodeSln) Log::Print(" ");
@@ -169,8 +171,7 @@ void PreCheck(GlobalData& globalData)
 		|| standard == StandardType::C_99
 		|| standard == StandardType::C_11
 		|| standard == StandardType::C_17
-		|| standard == StandardType::C_23
-		|| standard == StandardType::C_LATEST;
+		|| standard == StandardType::C_23;
 
 	bool isCPPLanguage =
 		standard == StandardType::CPP_03
@@ -179,7 +180,7 @@ void PreCheck(GlobalData& globalData)
 		|| standard == StandardType::CPP_17
 		|| standard == StandardType::CPP_20
 		|| standard == StandardType::CPP_23
-		|| standard == StandardType::CPP_LATEST;
+		|| standard == StandardType::CPP_26;
 
 	auto should_remove = [isCLanguage, isCPPLanguage](
 		const path& target, 
@@ -322,8 +323,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::C_99
 					|| standardType == StandardType::C_11
 					|| standardType == StandardType::C_17
-					|| standardType == StandardType::C_23
-					|| standardType == StandardType::C_LATEST)
+					|| standardType == StandardType::C_23)
 				{
 					command += " c";
 				}
@@ -333,7 +333,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::CPP_17
 					|| standardType == StandardType::CPP_20
 					|| standardType == StandardType::CPP_23
-					|| standardType == StandardType::CPP_LATEST)
+					|| standardType == StandardType::CPP_26)
 				{
 					command += " c++";
 				}
@@ -590,7 +590,7 @@ void Compile_Final(const GlobalData& globalData)
 			command += " " + frontArg + "c";
 			string objFront = isMSVC
 				? "/Fo:"
-				: "-o ";
+				: "-o";
 
 			vector<path> compiledObj{};
 			mutex m_compiledObj;
@@ -649,7 +649,7 @@ void Compile_Final(const GlobalData& globalData)
 
 							commands.push_back(
 							{
-								.dir = fullBuildPath,
+								.dir = globalData.projectFile.parent_path(),
 								.command = RemoveFromString(perFileCommand, "\"", true),
 								.file = s,
 								.output = objPath.string()
@@ -811,8 +811,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::C_99
 					|| standardType == StandardType::C_11
 					|| standardType == StandardType::C_17
-					|| standardType == StandardType::C_23
-					|| standardType == StandardType::C_LATEST)
+					|| standardType == StandardType::C_23)
 				{
 					command += " c";
 				}
@@ -822,7 +821,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::CPP_17
 					|| standardType == StandardType::CPP_20
 					|| standardType == StandardType::CPP_23
-					|| standardType == StandardType::CPP_LATEST)
+					|| standardType == StandardType::CPP_26)
 				{
 					command += " c++";
 				}

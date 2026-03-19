@@ -143,7 +143,6 @@ constexpr string_view standard_cpp17      = "c++17";
 constexpr string_view standard_cpp20      = "c++20";
 constexpr string_view standard_cpp23      = "c++23";
 constexpr string_view standard_cpp26      = "c++26";
-constexpr string_view standard_cpp_latest = "c++latest";
 
 constexpr string_view target_type_windows = "windows";
 constexpr string_view target_type_linux   = "linux";
@@ -426,8 +425,7 @@ namespace KalaMake::Core
 		{ StandardType::CPP_17,     standard_cpp17 },
 		{ StandardType::CPP_20,     standard_cpp20 },
 		{ StandardType::CPP_23,     standard_cpp23 },
-		{ StandardType::CPP_26,     standard_cpp26 },
-		{ StandardType::CPP_LATEST, standard_cpp_latest }
+		{ StandardType::CPP_26,     standard_cpp26 }
 	};
 
 	static const unordered_map<TargetType, string_view, EnumHash<TargetType>> targetTypes =
@@ -639,7 +637,7 @@ namespace KalaMake::Core
 			"KALAMAKE",
 			LogType::LOG_SUCCESS);
 
-		globalData.projectFile = projectFile;
+		globalData.projectFile = weakly_canonical(projectFile);
 
 		LanguageCore::Compile(globalData);
 	}
