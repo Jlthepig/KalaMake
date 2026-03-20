@@ -28,7 +28,7 @@ static void AddExternalCommands()
 		};
 	auto version = [](const vector<string>& params)
 		{
-			Log::Print("KalaMake 1.1");
+			Log::Print("KalaMake 1.2");
 		};
 
 	CommandManager::AddCommand(

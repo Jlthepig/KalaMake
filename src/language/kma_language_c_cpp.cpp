@@ -60,6 +60,7 @@ using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
 using std::filesystem::last_write_time;
 using std::filesystem::file_time_type;
+using std::filesystem::recursive_directory_iterator;
 using std::min;
 using std::atomic;
 using std::thread;
@@ -713,28 +714,38 @@ void Compile_Final(const GlobalData& globalData)
 			vector<path> compiledObj{};
 			mutex m_compiledObj;
 
-			vector<file_time_type> headerTimes{};
-			headerTimes.reserve(globalData.targetProfile.headers.size());
-			for (const auto& h : globalData.targetProfile.headers)
+			file_time_type newestHeaderTime = file_time_type::min();
+			for (const auto& dir : globalData.targetProfile.headers)
 			{
-				headerTimes.push_back(last_write_time(h));
+				for (const auto& entry : recursive_directory_iterator(dir))
+				{
+					if (!entry.is_regular_file()) continue;
+
+					const path& p = entry.path();
+					const path& ext = p.extension();
+
+					if (ext == ".h"
+						|| ext == ".hpp")
+					{
+						newestHeaderTime = max(
+							newestHeaderTime,
+							last_write_time(p));
+					}
+				}
 			}
 
-			auto headers_up_to_date = [headerTimes](const auto& t) -> bool
-				{
-					for (const auto& ht : headerTimes) if (ht > t) return false;
-
-					return true;
-				};
-
-			auto needs_compile = [headers_up_to_date](
+			auto needs_compile = [&newestHeaderTime](
 				const path& source,
 				const path& object
 				) -> bool
 				{
-					return !exists(object)
-						|| last_write_time(object) < last_write_time(source)
-						|| !headers_up_to_date(last_write_time(object));
+					if (!exists(object)) return true;
+
+					const file_time_type objTime = last_write_time(object);
+					const file_time_type srcTime = last_write_time(source);
+
+					return objTime < srcTime
+						|| objTime < newestHeaderTime;
 				};
 
 			auto generate = [

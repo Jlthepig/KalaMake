@@ -10,3 +10,7 @@
 - only get header timestamps once during compilation instead of per object
 - removed linux and windows from targettype and added linux-gnu, linux-musl and windows-gnu, removed dumb custom flag use-clang-zig-msvc
 - added proper cl compiler support on windows by requiring the user to pass vcvars64.bat or similar before calling kalamake if using cl compiler
+
+##  1.2
+
+- fixed c/cpp headers not correctly contributing to deciding if compilation should happen
