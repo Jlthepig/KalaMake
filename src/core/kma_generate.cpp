@@ -494,11 +494,13 @@ namespace KalaMake::Core
                 "Failed to update existing tasks.json at '" + tasksJson.string() + "' because it was malformed!");
         }
 
+        string projectFile = fix_slashes(task.projectFile);
+
         vector<string> newProfileLines{
             "        {",
             "            \"label\": \"" + task.label + "\",",
             "            \"type\": \"shell\",",
-            "            \"command\": \"kalamake --compile " + task.projectFile + " " + task.label + "\",",
+            "            \"command\": \"kalamake --compile " + projectFile + " " + task.label + "\",",
             "            \"group\": \"build\"",
             "        },"
         };
