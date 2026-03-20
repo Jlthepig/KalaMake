@@ -170,7 +170,82 @@ namespace KalaMake::Language
 }
 
 void PreCheck(GlobalData& globalData)
-{		
+{
+	//
+	// VERIFY COMPILER LOGIC
+	//
+
+	string_view compilerStr{};
+	EnumToString(
+		globalData.targetProfile.compiler,
+		KalaMakeCore::GetCompilerTypes(),
+		compilerStr);
+
+	string_view targetTypeStr{};
+	EnumToString(
+		globalData.targetProfile.targetType,
+		KalaMakeCore::GetTargetTypes(),
+		targetTypeStr);
+
+#ifdef _WIN32
+	auto has_env = [](string_view env) -> bool
+		{
+			char* envName{};
+			size_t envLen{};
+			string envStr(env);
+
+			if (_dupenv_s(&envName, &envLen, envStr.c_str()) != 0
+				|| !envName
+				|| !*envName)
+			{
+				free(envName);
+				return false;
+			}
+
+			free(envName);
+			return true;
+		};
+
+	if (globalData.targetProfile.compiler == CompilerType::C_CL
+		&& (!has_env("INCLUDE")
+		|| !has_env("LIB")))
+	{
+		KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Compiler '" + string(compilerStr) + "' requires to use vcvars64.bat or vcvarsall.bat before it can be used with KalaMake!");
+	}
+
+	if (globalData.targetProfile.targetType != TargetType::T_INVALID
+		&& (globalData.targetProfile.compiler == CompilerType::C_CL
+		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL))
+	{
+		KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"MSVC compiler '" + string(compilerStr) + "' is not allowed to add any non-MSVC target types!");
+	}
+
+	if ((globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
+		|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
+		&& globalData.targetProfile.compiler != CompilerType::C_ZIG)
+	{
+		KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Linux compiler '" + string(compilerStr) + "' is not allowed to add any non-MSVC target types!");
+	}
+#else
+	if (globalData.targetProfile.compiler == CompilerType::C_CL
+		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL)
+	{
+		KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"MSVC compiler '" + string(compilerStr) + "' is not allowed on Linux!");
+	}
+#endif
+
+	//
+	// FILTER OUT BAD SOURCE FILES 
+	//
+
 	StandardType standard = globalData.targetProfile.standard;
 	bool isCLanguage =
 		standard == StandardType::C_89
@@ -239,6 +314,7 @@ void PreCheck(GlobalData& globalData)
 			return false;
 		};
 
+	bool foundInvalid{};
 	vector<path>& sources = globalData.targetProfile.sources;
 	for (auto it = sources.begin(); it != sources.end();)
 	{
@@ -246,11 +322,12 @@ void PreCheck(GlobalData& globalData)
 		if (should_remove(target, true))
 		{
 			Log::Print(
-				"Removed invalid source script path '" + target.string() + "'",
+				"Ignoring invalid source script path '" + target.string() + "'",
 				"LANGUAGE_C_CPP",
 				LogType::LOG_INFO);
 
 			sources.erase(it);
+			foundInvalid = true;
 		}
 		else ++it;
 	}
@@ -261,6 +338,8 @@ void PreCheck(GlobalData& globalData)
 			"LANGUAGE_C_CPP",
 			"No sources were remaining after cleaning source scripts list!");
 	}
+
+	if (foundInvalid) Log::Print("\n===========================================================================\n");
 }
 
 void Compile_Final(const GlobalData& globalData)

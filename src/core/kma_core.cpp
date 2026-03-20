@@ -33,7 +33,6 @@ using KalaHeaders::KalaCore::IsAssignable;
 using KalaHeaders::KalaCore::AnyEnumAndStringMap;
 using KalaHeaders::KalaCore::AnyEnum;
 using KalaHeaders::KalaCore::StringToEnum;
-using KalaHeaders::KalaCore::EnumToString;
 using KalaHeaders::KalaCore::RemoveDuplicates;
 
 using KalaHeaders::KalaLog::Log;
@@ -149,7 +148,6 @@ constexpr string_view standard_cpp26      = "c++26";
 constexpr string_view target_type_linux_gnu    = "linux-gnu";
 constexpr string_view target_type_linux_musl   = "linux-musl";
 constexpr string_view target_type_windows_gnu  = "windows-gnu";
-constexpr string_view target_type_windows_msvc = "windows-msvc";
 
 constexpr string_view build_type_debug      = "debug";
 constexpr string_view build_type_release    = "release";
@@ -346,8 +344,6 @@ static void FirstParse(const vector<string>& lines);
 
 static string TranslateReferences(string_view value);
 
-static void VerifyCompilers(const GlobalData& globalData);
-
 namespace KalaMake::Core
 {
 	static const unordered_map<Version, string_view, EnumHash<Version>> versions =
@@ -438,8 +434,7 @@ namespace KalaMake::Core
 	{
 		{ TargetType::T_LINUX_GNU,    target_type_linux_gnu },
 		{ TargetType::T_LINUX_MUSL,   target_type_linux_musl },
-		{ TargetType::T_WINDOWS_GNU,  target_type_windows_gnu },
-		{ TargetType::T_WINDOWS_MSVC, target_type_windows_msvc }
+		{ TargetType::T_WINDOWS_GNU,  target_type_windows_gnu }
 	};
 
 	static const unordered_map<BuildType, string_view, EnumHash<BuildType>> buildTypes =
@@ -634,8 +629,6 @@ namespace KalaMake::Core
 				"KALAMAKE",
 				"No sources were passed!");
 		}
-
-		VerifyCompilers(globalData);
 
 		//assign cpu thread count if none was assigned
 		if (globalData.targetProfile.jobs == 0) globalData.targetProfile.jobs = GetThreadCount();
@@ -2167,46 +2160,4 @@ string TranslateReferences(string_view value)
 	}
 
 	return result;
-}
-
-void VerifyCompilers(const GlobalData& globalData)
-{
-	string_view compilerStr{};
-	EnumToString(
-		globalData.targetProfile.compiler,
-		KalaMakeCore::GetCompilerTypes(),
-		compilerStr);
-
-	string_view targetTypeStr{};
-	EnumToString(
-		globalData.targetProfile.targetType,
-		KalaMakeCore::GetTargetTypes(),
-		targetTypeStr);
-
-#ifdef _WIN32
-	if ((globalData.targetProfile.compiler == CompilerType::C_CL
-		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL)
-		&& globalData.targetProfile.targetType != TargetType::T_WINDOWS_MSVC
-		&& globalData.targetProfile.targetType != TargetType::T_INVALID)
-	{
-		KalaMakeCore::CloseOnError(
-			"KALAMAKE",
-			"MSVC compiler '" + string(compilerStr) + "' is not allowed to add any non-MSVC target types!");
-	}
-#else
-	if (globalData.targetProfile.compiler == CompilerType::C_CL
-		|| globalData.targetProfile.compiler == CompilerType::C_CLANG_CL)
-	{
-		KalaMakeCore::CloseOnError(
-			"KALAMAKE",
-			"MSVC compiler '" + string(compilerStr) + "' is not allowed on Linux!");
-	}
-
-	if (globalData.targetProfile.targetType == TargetType::T_WINDOWS_MSVC)
-	{
-		KalaMakeCore::CloseOnError(
-			"KALAMAKE",
-			"Target type '" + string(targetTypeStr) + "' is not allowed on Linux!");
-	}
-#endif
 }

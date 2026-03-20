@@ -126,10 +126,9 @@ Available values:
     
 ### targettype
 
-Describes which target to aim for, used for cross-compilation. Only one value is allowed. Leave empty for current platform.
+Describes which target to aim for, used for cross-compilation. Only one value is allowed. Leave empty for current platform. Windows doesnt have a 'windows-msvc' equivalent so that cannot be passed as a target type.
 
 Available values:
-- windows-msvc - create a regular windows binary on windows
 - windows-gnu - create a windows binary on windows or linux
 - linux-gnu - create a linux binary on windows or linux (uses glibc)
 - linux-musl - create a linux binary on windows or linux (uses musl)
