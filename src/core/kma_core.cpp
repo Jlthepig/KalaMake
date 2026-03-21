@@ -135,7 +135,6 @@ constexpr string_view standard_c99        = "c99";
 constexpr string_view standard_c11        = "c11";
 constexpr string_view standard_c17        = "c17";
 constexpr string_view standard_c23        = "c23";
-constexpr string_view standard_c_latest   = "clatest";
 constexpr string_view standard_cpp98      = "c++98";
 constexpr string_view standard_cpp03      = "c++03";
 constexpr string_view standard_cpp11      = "c++11";
@@ -418,7 +417,6 @@ namespace KalaMake::Core
 		{ StandardType::C_11,     standard_c11 },
 		{ StandardType::C_17,     standard_c17 },
 		{ StandardType::C_23,     standard_c23 },
-		{ StandardType::C_LATEST, standard_c_latest },
 
 		{ StandardType::CPP_98,  standard_cpp98 },
 		{ StandardType::CPP_03,  standard_cpp03 },

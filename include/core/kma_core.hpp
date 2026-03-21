@@ -176,7 +176,6 @@ namespace KalaMake::Core
 		C_11 = 3u,
 		C_17 = 4u,
 		C_23 = 5u,
-		C_LATEST = 6u,
 
 		CPP_98 = 7u,
 		CPP_03 = 8u,

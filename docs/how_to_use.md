@@ -162,6 +162,13 @@ Describes what folder to build the binary into. Accepts relative or full paths. 
 
 Describes what sources this binary will use. Supports quoted relative and full paths to files and folders, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
 
+Sources support exclusion with the `!` symbol in front of the file or dir name, globbed paths do not support exclusion.
+
+```
+//exclude a source script
+sources: "!myfile.cpp"
+```
+
 ### headers
 
 Describes what headers this binary will use. Supports quoted relative and full paths to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
@@ -169,6 +176,13 @@ Describes what headers this binary will use. Supports quoted relative and full p
 ### links
 
 Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `.lib` are added in front of the link internally to system library paths. Can add multiple values.
+
+Links support exclusion with the `!` symbol in front of the file or dir name, globbed paths do not support exclusion.
+
+```
+//exclude a library
+links: "!mylink.lib"
+```
 
 ### warninglevel
 

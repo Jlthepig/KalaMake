@@ -51,10 +51,12 @@ using KalaMake::Core::VSCode_Task;
 
 using std::string;
 using std::string_view;
+using std::to_string;
 using std::vector;
 using std::filesystem::path;
 using std::filesystem::current_path;
 using std::filesystem::relative;
+using std::filesystem::weakly_canonical;
 using std::filesystem::exists;
 using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
@@ -264,22 +266,20 @@ void PreCheck(GlobalData& globalData)
 		|| standard == StandardType::CPP_23
 		|| standard == StandardType::CPP_26;
 
-	auto should_remove = [isCLanguage, isCPPLanguage](
-		const path& target, 
-		bool isSource) -> bool
+	auto should_exclude = [](const path& target) -> bool
 		{
-			if (!isSource
-				&& (!exists(target)
-				|| !is_directory(target)))
-			{
-				return true;
-			}
+			return (target.string().starts_with('!'));
+		};
 
-			if (isSource
-				&& (!exists(target)
+	auto should_remove = [
+		isCLanguage, 
+		isCPPLanguage](
+		const path& target) -> bool
+		{
+			if (!exists(target)
 				|| is_directory(target)
 				|| !is_regular_file(target)
-				|| !target.has_extension()))
+				|| !target.has_extension())
 			{
 				return true;
 			}
@@ -294,16 +294,16 @@ void PreCheck(GlobalData& globalData)
 
 			if (isCLanguage)
 			{
-				if (isSource
-					&& target.extension() != ".c")
+				if (target.extension() != ".c")
 				{
 					return true;
+
+					
 				}
 			}
 			if (isCPPLanguage)
 			{
-				if (isSource
-					&& target.extension() != ".c"
+				if (target.extension() != ".c"
 					&& target.extension() != ".cpp"
 					&& target.extension() != ".cc"
 					&& target.extension() != ".cxx")
@@ -317,30 +317,113 @@ void PreCheck(GlobalData& globalData)
 
 	bool foundInvalid{};
 	vector<path>& sources = globalData.targetProfile.sources;
-	for (auto it = sources.begin(); it != sources.end();)
+	vector<path> exclusions{};
+	vector<path> finalSources{};
+
+	for (const auto& target : sources)
 	{
-		path target = *it;
-		if (should_remove(target, true))
+		if (should_exclude(target))
+		{
+			string withoutExclamation = target.string().substr(1);
+
+			auto itMatch = find(
+				sources.begin(),
+				sources.end(),
+				path((withoutExclamation)));
+
+			if (itMatch == sources.end())
+			{
+				withoutExclamation = (current_path() / withoutExclamation).string();
+
+				itMatch = find(
+					sources.begin(),
+					sources.end(),
+					path((withoutExclamation)));
+
+				if (itMatch == sources.end())
+				{
+					KalaMakeCore::CloseOnError(
+						"LANGUAGE_C_CPP",
+						"Cannot ignore target '" + target.string() + "' if it hasn't already been added to sources list!");
+				}
+			}
+
+			exclusions.push_back(withoutExclamation);
+
+			Log::Print(
+				"Ignoring excluded source script path '" + (*itMatch).string() + "'.",
+				"LANGUAGE_C_CPP",
+				LogType::LOG_INFO);
+
+			foundInvalid = true;
+			continue;
+		}
+		if (should_remove(target))
 		{
 			Log::Print(
 				"Ignoring invalid source script path '" + target.string() + "'",
 				"LANGUAGE_C_CPP",
 				LogType::LOG_INFO);
 
-			sources.erase(it);
 			foundInvalid = true;
+			continue;
 		}
-		else ++it;
+
+		path canonicalPath = weakly_canonical(target);
+		if (!exists(canonicalPath))
+		{
+			Log::Print(
+				"Ignoring non-existing source script path '" + target.string() + "'",
+				"LANGUAGE_C_CPP",
+				LogType::LOG_INFO);
+
+			foundInvalid = true;
+			continue;
+		}
+		if (!is_regular_file(canonicalPath))
+		{
+			Log::Print(
+				"Ignoring non-file source script path '" + target.string() + "'",
+				"LANGUAGE_C_CPP",
+				LogType::LOG_INFO);
+
+			foundInvalid = true;
+			continue;
+		}
+
+		finalSources.push_back(target);
 	}
 
-	if (sources.empty())
+	if (finalSources.empty())
 	{
 		KalaMakeCore::CloseOnError(
 			"LANGUAGE_C_CPP",
 			"No sources were remaining after cleaning source scripts list!");
 	}
 
-	if (foundInvalid) Log::Print("\n===========================================================================\n");
+	if (foundInvalid) 
+	{
+		Log::Print("size before exclude remove: " + to_string(finalSources.size()));
+
+		if (!exclusions.empty())
+		{
+			finalSources.erase(
+				remove_if(
+					finalSources.begin(),
+					finalSources.end(),
+					[&exclusions](const path& p)
+					{
+						return find(exclusions.begin(), exclusions.end(), p) != exclusions.end();
+					}),
+				finalSources.end());
+		}
+
+		Log::Print("size after exclude remove: " + to_string(finalSources.size()));
+
+		globalData.targetProfile.sources = std::move(finalSources);
+
+		Log::Print("\n===========================================================================\n");
+	}
 }
 
 void Compile_Final(const GlobalData& globalData)
