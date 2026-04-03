@@ -51,7 +51,6 @@ using KalaMake::Core::VSCode_Task;
 
 using std::string;
 using std::string_view;
-using std::to_string;
 using std::vector;
 using std::filesystem::path;
 using std::filesystem::current_path;
@@ -98,6 +97,8 @@ constexpr string_view target_type_win_gpp = "x86_64-w64-mingw32-g++";
 constexpr string_view target_type_win_gnu = "x86_64-w64-windows-gnu";
 
 static vector<CompileCommand> commands{};
+
+static file_time_type kmakeTime{};
 
 static void GenerateSteps(
 	bool isMSVC,
@@ -793,6 +794,7 @@ void Compile_Final(const GlobalData& globalData)
 			vector<path> compiledObj{};
 			mutex m_compiledObj;
 
+			kmakeTime = last_write_time(globalData.projectFile);
 			file_time_type newestHeaderTime = file_time_type::min();
 			for (const auto& dir : globalData.targetProfile.headers)
 			{
@@ -823,7 +825,8 @@ void Compile_Final(const GlobalData& globalData)
 					const file_time_type objTime = last_write_time(object);
 					const file_time_type srcTime = last_write_time(source);
 
-					return objTime < srcTime
+					return objTime < kmakeTime
+						|| objTime < srcTime
 						|| objTime < newestHeaderTime;
 				};
 
@@ -975,8 +978,6 @@ void Compile_Final(const GlobalData& globalData)
 			}
 
 			//set compiler
-
-			//TODO: call cl x64 bat correctly
 
 			string compiler{};
 			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE
@@ -1197,7 +1198,9 @@ void Compile_Final(const GlobalData& globalData)
 				{
 					if (!exists(output)) return true;
 
-					auto exeTime = last_write_time(output);
+					file_time_type exeTime = last_write_time(output);
+
+					if (exeTime < kmakeTime) return true;
 
 					for (const auto& o : objects)
 					{
