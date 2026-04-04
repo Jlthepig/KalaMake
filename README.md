@@ -1,10 +1,21 @@
 # KalaMake
 
-KalaMake is a multithreaded binary compiler that uses ".kmake" files and it is intended to use as a replacement for other build scripts and generators like Make, Premake, CMake or Ninja. KalaMake automatically uses all available threads from your cpu to always help speed up compilation, or you can fill the jobs field with your desired job count.
+KalaMake is a multithreaded CLI for building libraries and executables with `.kmake` files and it is intended to use as a replacement for other build scripts and generators like Make, Premake, CMake or Ninja. KalaMake automatically uses all available threads from your CPU to always help speed up compilation, or you can fill the jobs field with your desired job count.
 
 KalaMake currently accepts several commands, most of which come from [KalaCLI](https://github.com/kalakit/kalacli) which is statically linked to KalaMake. Type '--help' to list all available commands and type --info commandnamehere to list info about that command.
 
-Currently only C, C++, Windows (x86_64) and Linux (x86_64) are supported but more languages will be added in future versions. There are no plans to support mobile, console, ARM, x86 or macOS.
+Currently supported languages:
+- C89 to C23
+- C++98 to C++26
+- Java 8 to Java 26
+
+Upcoming languages:
+- Python
+- Rust
+- C#
+- Go
+
+Currently only Windows (x86_64) and Linux (x86_64) are supported but BSD support will be added very soon. There are no plans to support mobile, console, ARM, x86 or macOS.
 
 ## Links
 
