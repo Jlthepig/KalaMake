@@ -70,10 +70,6 @@ using std::ostringstream;
 
 using u16 = uint16_t;
 
-static void PreCheck(GlobalData& globalData);
-
-static void Compile_Final(const GlobalData& globalData);
-
 constexpr string_view objFolderName = "obj";
 
 //gcc + linux-gnu
@@ -99,6 +95,10 @@ constexpr string_view target_type_win_gnu = "x86_64-w64-windows-gnu";
 static vector<CompileCommand> commands{};
 
 static file_time_type kmakeTime{};
+
+static void PreCheck(GlobalData& globalData);
+
+static void Compile_Final(const GlobalData& globalData);
 
 static void GenerateSteps(
 	bool isMSVC,
@@ -152,20 +152,8 @@ static void GenerateSteps(
 
 namespace KalaMake::Language
 {
-	void LanguageCore::Compile(GlobalData& globalData)
+	void LanguageCore::Compile_C_CPP(GlobalData& globalData)
 	{
-		CompilerType c = globalData.targetProfile.compiler;
-		if (c != CompilerType::C_ZIG
-			&& c != CompilerType::C_CL
-			&& c != CompilerType::C_CLANG_CL
-			&& c != CompilerType::C_CLANG
-			&& c != CompilerType::C_CLANGPP
-			&& c != CompilerType::C_GCC
-			&& c != CompilerType::C_GPP)
-		{
-			return;
-		}
-
 		commands.clear();
 
 		PreCheck(globalData);
@@ -175,6 +163,15 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+	if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_PACKAGE_JAR))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Custom flag 'package-jar' is not supported in C and C++!");
+	}
+
 	//
 	// VERIFY COMPILER LOGIC
 	//
@@ -461,7 +458,7 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				KalaMakeCore::CloseOnError(
 					"LANGUAGE_C_CPP",
-					"Failed to run pre build action!");
+					"Failed to run pre build action '" + a + "'!");
 			}
 		}
 
@@ -494,8 +491,6 @@ void Compile_Final(const GlobalData& globalData)
 			}
 
 			//set compiler
-
-			//TODO: call cl x64 bat correctly
 
 			string_view compiler{};
 			EnumToString(globalData.targetProfile.compiler, KalaMakeCore::GetCompilerTypes(), compiler);
@@ -905,11 +900,9 @@ void Compile_Final(const GlobalData& globalData)
 					else
 					{
 						Log::Print(
-							"Skipping compilation of object file '" + objPath.string() + "' because it is newer than its source and header files.",
+							"Skipping compilation of object file '" + objPath.string() + "' because it is newer than its source and header files.\n",
 							"LANGUAGE_C_CPP",
 							LogType::LOG_INFO);
-
-						Log::Print("\n");
 					}
 
 					lockwait_m(m_compiledObj);
@@ -927,7 +920,6 @@ void Compile_Final(const GlobalData& globalData)
 					globalData.targetProfile.sources.size());
 
 				atomic<int> next{};
-
 				vector<thread> workers{};
 
 				for (u16 i = 0; i < max_jobs; ++i)
@@ -1260,7 +1252,7 @@ void Compile_Final(const GlobalData& globalData)
 	//
 
 	vector<path> objFiles = compile();
-	if (!objFiles.empty()) link(objFiles);
+	link(objFiles);
 
 	//
 	// POST BUILD ACTIONS
@@ -1283,7 +1275,7 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				KalaMakeCore::CloseOnError(
 					"LANGUAGE_C_CPP",
-					"Failed to run post build action!");
+					"Failed to run post build action '" + a + "'!");
 			}
 		}
 

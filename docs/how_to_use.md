@@ -84,6 +84,8 @@ Available values:
 - executable - creates an executable
 - static - creates a static .lib (.a on linux)
 - shared - creates a shared dll + inline .lib (.so on linux)
+
+Static and shared are not supported in Java.
     
 ### compilerlauncher
 
@@ -94,6 +96,8 @@ Available values:
 - sccache - same as ccache but supports shared cache servers
 - distcc - sends compile jobs to other servers
 - icecc - same as distcc but ships compiler toolchain too
+
+Compiler launcher is not supported in Java.
     
 ### compiler
 
@@ -107,6 +111,7 @@ Available values:
 - clang
 - clang++
 - zig
+- java
     
 ### standard
 
@@ -118,6 +123,7 @@ Available values:
 - c11
 - c17
 - c23
+
 - c++98
 - c++03
 - c++11
@@ -126,6 +132,8 @@ Available values:
 - c++20
 - c++23
 - c++26
+
+- java8 to java26
     
 ### targettype
 
@@ -135,10 +143,14 @@ Available values:
 - windows-gnu - create a windows binary on windows or linux
 - linux-gnu - create a linux binary on windows or linux (uses glibc)
 - linux-musl - create a linux binary on windows or linux (uses musl)
+
+Target type is not supported in Java.
     
 ### jobs
 
 Describes how many jobs to use for the compilation pass. More jobs = more parallel threads for each source script. It is recommended to have up to 2x as many jobs as you have logical cores available on your cpu, limited from 1 to 65535. Only one value is allowed.
+
+Jobs are not supported in Java.
 
 ### binaryname
 
@@ -153,6 +165,8 @@ Available values:
 - release - release output, optimizes for speed
 - reldebug - release output, optimizes for speed, keeps debug symbols
 - minsizerel - release output, optimizes for size
+
+Release, reldebug and minsizerel are the same in Java.
     
 ### buildpath
 
@@ -173,11 +187,15 @@ sources: "!myfile.cpp"
 
 Describes what headers this binary will use. Supports quoted relative and full paths to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
 
+Headers are not supported in Java.
+
 ### links
 
 Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `.lib` are added in front of the link internally to system library paths. Can add multiple values.
 
 Links support exclusion with the `!` symbol in front of the file or dir name, globbed paths do not support exclusion.
+
+Links are not supported in Java.
 
 ```
 //exclude a library
@@ -195,10 +213,14 @@ Available values:
 - strong - strong warnings
 - strict - very strict, high signal warnings
 - all - all warnings
+
+Warning level is not supported in Java.
     
 ### defines
 
 Describes what defines to pass to the compiler. `-D` and `/D` are added in front of the define internally. Can add multiple values.
+
+Defines are not supported in Java.
 
 ### compileflags
 
@@ -207,6 +229,8 @@ Describes what flags will be added during the compile stage. `-` and `/` are add
 ### linkflags
 
 Describes what flags will be added during the link stage. `-` and `/` are added in front of the flag internally. Can add multiple values.
+
+Link flags are not supported in Java.
 
 ### customflags
 
@@ -217,6 +241,9 @@ Available values:
 - export-vscode-sln - creates tasks.json and launch.json and their required .vscode folder if they dont exist, otherwise appends to existing files and overwrites profile with same name
 - warnings-as-errors - all compiler or linker displayed warnings will be displayed as errors and will stop the build if encountered
 - msvc-static-runtime - uses /MT or /MTd with cl and clang-cl instead of the default /MD or /MDd, unused in Linux
+- package-jar - optional post-jar task to also package the created jar file into an executable.
+
+Export-compile-commands is not supported in Java, package-jar is not supported in C and C++.
     
 ### prebuildaction
 

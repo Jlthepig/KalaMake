@@ -35,6 +35,8 @@ using KalaHeaders::KalaCore::AnyEnum;
 using KalaHeaders::KalaCore::StringToEnum;
 using KalaHeaders::KalaCore::RemoveDuplicates;
 
+using KalaHeaders::KalaCore::ContainsValue;
+
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
@@ -130,20 +132,40 @@ constexpr string_view compiler_clang    = "clang";
 constexpr string_view compiler_clangpp  = "clang++";
 constexpr string_view compiler_gcc      = "gcc";
 constexpr string_view compiler_gpp      = "g++";
+constexpr string_view compiler_java     = "java";
 
-constexpr string_view standard_c89        = "c89";
-constexpr string_view standard_c99        = "c99";
-constexpr string_view standard_c11        = "c11";
-constexpr string_view standard_c17        = "c17";
-constexpr string_view standard_c23        = "c23";
-constexpr string_view standard_cpp98      = "c++98";
-constexpr string_view standard_cpp03      = "c++03";
-constexpr string_view standard_cpp11      = "c++11";
-constexpr string_view standard_cpp14      = "c++14";
-constexpr string_view standard_cpp17      = "c++17";
-constexpr string_view standard_cpp20      = "c++20";
-constexpr string_view standard_cpp23      = "c++23";
-constexpr string_view standard_cpp26      = "c++26";
+constexpr string_view standard_c89    = "c89";
+constexpr string_view standard_c99    = "c99";
+constexpr string_view standard_c11    = "c11";
+constexpr string_view standard_c17    = "c17";
+constexpr string_view standard_c23    = "c23";
+constexpr string_view standard_cpp98  = "c++98";
+constexpr string_view standard_cpp03  = "c++03";
+constexpr string_view standard_cpp11  = "c++11";
+constexpr string_view standard_cpp14  = "c++14";
+constexpr string_view standard_cpp17  = "c++17";
+constexpr string_view standard_cpp20  = "c++20";
+constexpr string_view standard_cpp23  = "c++23";
+constexpr string_view standard_cpp26  = "c++26";
+constexpr string_view standard_java8  = "java8";
+constexpr string_view standard_java9  = "java9";
+constexpr string_view standard_java10 = "java10";
+constexpr string_view standard_java11 = "java11";
+constexpr string_view standard_java12 = "java12";
+constexpr string_view standard_java13 = "java13";
+constexpr string_view standard_java14 = "java14";
+constexpr string_view standard_java15 = "java15";
+constexpr string_view standard_java16 = "java16";
+constexpr string_view standard_java17 = "java17";
+constexpr string_view standard_java18 = "java18";
+constexpr string_view standard_java19 = "java19";
+constexpr string_view standard_java20 = "java20";
+constexpr string_view standard_java21 = "java21";
+constexpr string_view standard_java22 = "java22";
+constexpr string_view standard_java23 = "java23";
+constexpr string_view standard_java24 = "java24";
+constexpr string_view standard_java25 = "java25";
+constexpr string_view standard_java26 = "java26";
 
 constexpr string_view target_type_linux_gnu    = "linux-gnu";
 constexpr string_view target_type_linux_musl   = "linux-musl";
@@ -165,6 +187,7 @@ constexpr string_view custom_export_comp_comm    = "export-compile-commands";
 constexpr string_view custom_export_vscode_sln   = "export-vscode-sln";
 constexpr string_view custom_warnings_as_err     = "warnings-as-errors";
 constexpr string_view custom_msvc_static_runtime = "msvc-static-runtime";
+constexpr string_view custom_package_jar         = "package-jar";
 
 //kma path is the root directory where the kmake file is stored at
 static path kmaPath{};
@@ -408,7 +431,9 @@ namespace KalaMake::Core
 		{ CompilerType::C_CLANG,   compiler_clang },
 		{ CompilerType::C_CLANGPP, compiler_clangpp },
 		{ CompilerType::C_GCC,     compiler_gcc },
-		{ CompilerType::C_GPP,     compiler_gpp }
+		{ CompilerType::C_GPP,     compiler_gpp },
+
+		{ CompilerType::C_JAVA, compiler_java }
 	};
 
 	static const unordered_map<StandardType, string_view, EnumHash<StandardType>> standardTypes =
@@ -426,7 +451,27 @@ namespace KalaMake::Core
 		{ StandardType::CPP_17, standard_cpp17 },
 		{ StandardType::CPP_20, standard_cpp20 },
 		{ StandardType::CPP_23, standard_cpp23 },
-		{ StandardType::CPP_26, standard_cpp26 }
+		{ StandardType::CPP_26, standard_cpp26 },
+
+		{ StandardType::JAVA_8,  standard_java8 },
+		{ StandardType::JAVA_9,  standard_java9 },
+		{ StandardType::JAVA_10, standard_java10 },
+		{ StandardType::JAVA_11, standard_java11 },
+		{ StandardType::JAVA_12, standard_java12 },
+		{ StandardType::JAVA_13, standard_java13 },
+		{ StandardType::JAVA_14, standard_java14 },
+		{ StandardType::JAVA_15, standard_java15 },
+		{ StandardType::JAVA_16, standard_java16 },
+		{ StandardType::JAVA_17, standard_java17 },
+		{ StandardType::JAVA_18, standard_java18 },
+		{ StandardType::JAVA_19, standard_java19 },
+		{ StandardType::JAVA_20, standard_java20 },
+		{ StandardType::JAVA_21, standard_java21 },
+		{ StandardType::JAVA_22, standard_java22 },
+		{ StandardType::JAVA_23, standard_java23 },
+		{ StandardType::JAVA_24, standard_java24 },
+		{ StandardType::JAVA_25, standard_java25 },
+		{ StandardType::JAVA_26, standard_java26 }
 	};
 
 	static const unordered_map<TargetType, string_view, EnumHash<TargetType>> targetTypes =
@@ -463,7 +508,8 @@ namespace KalaMake::Core
 		{ CustomFlag::F_EXPORT_COMPILE_COMMANDS,     custom_export_comp_comm },
 		{ CustomFlag::F_EXPORT_VSCODE_SLN,           custom_export_vscode_sln },
 		{ CustomFlag::F_WARNINGS_AS_ERRORS,          custom_warnings_as_err },
-		{ CustomFlag::F_MSVC_STATIC_RUNTIME,         custom_msvc_static_runtime }
+		{ CustomFlag::F_MSVC_STATIC_RUNTIME,         custom_msvc_static_runtime },
+		{ CustomFlag::F_PACKAGE_JAR,                 custom_package_jar }
 	};
 
 	void KalaMakeCore::OpenFile(
@@ -545,10 +591,13 @@ namespace KalaMake::Core
 				//assign cpu thread count if none was assigned
 				if (globalData.targetProfile.jobs == 0) globalData.targetProfile.jobs = GetThreadCount();
 
-				Log::Print(
-					"Using '" + to_string(globalData.targetProfile.jobs) + "' jobs for compilation.\n",
-					"KALAMAKE",
-					LogType::LOG_INFO);
+				if (globalData.targetProfile.compiler != CompilerType::C_JAVA)
+				{
+					Log::Print(
+						"Using '" + to_string(globalData.targetProfile.jobs) + "' jobs for compilation.\n",
+						"KALAMAKE",
+						LogType::LOG_INFO);
+				}
 
 				globalData.projectFile = weakly_canonical(projectFile);
 
@@ -559,7 +608,21 @@ namespace KalaMake::Core
 
 				Log::Print("===========================================================================\n");
 
-				LanguageCore::Compile(globalData);
+				CompilerType c = globalData.targetProfile.compiler;
+				if (c == CompilerType::C_ZIG
+					|| c == CompilerType::C_CL
+					|| c == CompilerType::C_CLANG_CL
+					|| c == CompilerType::C_CLANG
+					|| c == CompilerType::C_CLANGPP
+					|| c == CompilerType::C_GCC
+					|| c == CompilerType::C_GPP)
+				{
+					LanguageCore::Compile_C_CPP(globalData);
+				}
+				else if (c == CompilerType::C_JAVA)
+				{
+					LanguageCore::Compile_Java(globalData);
+				}
 			};
 
 		auto require_quotes = [](const string& input) -> string

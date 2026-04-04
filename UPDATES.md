@@ -21,4 +21,8 @@
 - improved command param count detection, no longer giving error for invalid param count
 - display --help when directly launching kalamake
 - added --clean command which removes all found build paths from project file
-- fixed issues with "," not working between paths in some scenarios
+- fixed issues with "," not working between paths in some 
+- added java 8-26 support
+- added new custom flag package-jar
+- added new compiletypes java8 - java26
+- added new compiler java

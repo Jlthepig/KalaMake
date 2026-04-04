@@ -25,14 +25,6 @@ namespace KalaMake::Core
 	using u8 = uint8_t;
 	using u16 = uint16_t;
 
-	constexpr size_t MIN_NAME_LENGTH = 1;
-	constexpr size_t MAX_NAME_LENGTH = 20;
-
-	//default build directory path relative to kmaPath if buildpath is not added or filled
-	static const path defaultBuildPath = "build";
-	//default object directory path relative to kmaPath if objpath is not added or filled
-	static const path defaultObjPath = "build/obj";
-
 	enum class StartType : u8
 	{
 		S_INVALID = 0u,
@@ -73,22 +65,25 @@ namespace KalaMake::Core
 
 		//what is the target type of the binary
 		T_BINARY_TYPE = 1u,
-		//which compiler launcher runs before the compiler
+		//which compiler launcher runs before the compiler,
+		//only for C and C++
 		T_COMPILER_LAUNCHER = 2u,
 		//which compiler is used to compile this binary source code
 		T_COMPILER = 3u,
 		//which language standard is used to compile this source code,
-		//only for C, C++, C#, Rust and Java
+		//only for C, C++ and java
 		T_STANDARD = 4u,
 		//what is the target platform of the binary,
-		//supports zig, clang, clang++, gcc and g++
+		//only for C and C++
 		T_TARGET_TYPE = 5u,
-		//how many jobs are allowed to do in parallel for compilation
+		//how many jobs are allowed to do in parallel for compilation,
+		//only for C and C++
 		T_JOBS = 6u,
 
 		//what is the name of the the binary
 		T_BINARY_NAME = 7u,
-		//which build type is the binary
+		//which build type is the binary,
+		//only for C, C++ and java
 		T_BUILD_TYPE = 8u,
 		//where is the binary built to
 		T_BUILD_PATH = 9u,
@@ -98,24 +93,27 @@ namespace KalaMake::Core
 		//only for C and C++
 		T_HEADERS = 11u,
 		//what links will be added to the binary,
-		//only for C, C++ and Rust
+		//only for C and C++
 		T_LINKS = 12u,
-		//what warning level will compilation and linking use, defaults to 'none'
+		//what warning level will compilation and linking use, defaults to 'none',
+		//only for C and C++
 		T_WARNING_LEVEL = 13u,
 		//what defines will be added to the binary,
-		//only for C, C++ and Rust
+		//only for C and C++
 		T_DEFINES = 14u,
-		//what flags will be passed to the compiler stage, optional
+		//what flags will be passed to the compiler stage,
+		//only for C, C++ and java
 		T_COMPILE_FLAGS = 15u,
-		//what flags will be passed to the link stage, optional
+		//what flags will be passed to the link stage,
+		//only for C and C++
 		T_LINK_FLAGS = 16u,
 		//what kalamake-specific flags will trigger extra actions
 		T_CUSTOM_FLAGS = 17u,
 
-		//pre-build action field, can add as many as you want, optional
+		//pre-build action field, can add as many as you want
 		T_PRE_BUILD_ACTION = 18u,
 
-		//post-build action field, can add as many as you want, optional
+		//post-build action field, can add as many as you want
 		T_POST_BUILD_ACTION = 19u
 	};
 
@@ -128,15 +126,18 @@ namespace KalaMake::Core
 		B_EXECUTABLE = 1u,
 
 		//creates a linkable .lib on MSVC,
-		//creates a linkable .a on GNU
+		//creates a linkable .a on GNU,
+		//not used in python
 		B_STATIC = 2u,
 
 		//creates a .dll and a linkable .lib on MSVC,
-		//creates a .so on GNU, same as runtime-only
+		//creates a .so on GNU, same as runtime-only,
+		//not used in python
 		B_SHARED = 3u
 	};
 
-	//Specifies a compiler launcher program that runs before the compiler
+	//Specifies a compiler launcher program that runs before the compiler,
+	//only for C and C++
 	enum class CompilerLauncherType : u8
 	{
 		C_INVALID = 0u,
@@ -156,6 +157,10 @@ namespace KalaMake::Core
 	{
 		C_INVALID = 0u,
 
+		//
+		// C/C++
+		//
+
 		//windows + linux, target-specific flags
 		C_ZIG = 1u,
 
@@ -171,13 +176,25 @@ namespace KalaMake::Core
 		//linux, GNU flags, defaults to C
 		C_GCC = 6u,
 		//linux, GNU flags, defaults to C++
-		C_GPP = 7u
+		C_GPP = 7u,
+
+		//
+		// PYTHON
+		//
+
+		//general java compiler
+		C_JAVA = 8u
 	};
 
-	//Allowed standard types that can be added to the standard field
+	//Allowed standard types that can be added to the standard field,
+	//only for C, C++ and java
 	enum class StandardType : u8
 	{
 		S_INVALID = 0u,
+
+		//
+		// C/C++
+		//
 
 		C_89 = 1u,
 		C_99 = 2u,
@@ -192,10 +209,35 @@ namespace KalaMake::Core
 		CPP_17 = 11u,
 		CPP_20 = 12u,
 		CPP_23 = 13u,
-		CPP_26 = 14u
+		CPP_26 = 14u,
+
+		//
+		// JAVA
+		//
+
+		JAVA_8  = 22u,
+		JAVA_9  = 23u,
+		JAVA_10 = 24u,
+		JAVA_11 = 25u,
+		JAVA_12 = 26u,
+		JAVA_13 = 27u,
+		JAVA_14 = 28u,
+		JAVA_15 = 29u,
+		JAVA_16 = 30u,
+		JAVA_17 = 31u,
+		JAVA_18 = 32u,
+		JAVA_19 = 33u,
+		JAVA_20 = 34u,
+		JAVA_21 = 35u,
+		JAVA_22 = 36u,
+		JAVA_23 = 37u,
+		JAVA_24 = 38u,
+		JAVA_25 = 38u,
+		JAVA_26 = 39u
 	};
 
-	//Allowed target types in C and C++ that can be added to the targettype field
+	//Allowed target types in C and C++ that can be added to the targettype field,
+	//only for C and C++
 	enum class TargetType : u8
 	{
 		T_INVALID = 0u,
@@ -210,7 +252,8 @@ namespace KalaMake::Core
 		T_WINDOWS_GNU = 3u
 	};
 
-	//Allowed build types that can be added to the buildtype field
+	//Allowed build types that can be added to the buildtype field,
+	//only for C, C++ and java
 	enum class BuildType : u8
 	{
 		B_INVALID = 0u,
@@ -221,14 +264,17 @@ namespace KalaMake::Core
 		//creates a release binary
 		B_RELEASE = 2u,
 
-		//creates a release binary with debug flag
+		//creates a release binary with debug flag,
+		//same as release on java
 		B_RELDEBUG = 3u,
 
-		//creates a release binary with smallest size flags
+		//creates a release binary with smallest size flags,
+		//same as release on java
 		B_MINSIZEREL = 4u
 	};
 
-	//Allowed warning levels that can be added to the warninglevel field
+	//Allowed warning levels that can be added to the warninglevel field,
+	//only for C and C++
 	enum class WarningLevel : u8
 	{
 		W_INVALID = 0u,
@@ -271,7 +317,11 @@ namespace KalaMake::Core
 		//embed the C/C++ runtime into the binary,
 		//dynamic runtime is enabled by default unless this is added,
 		//only for C and C++, not used in linux
-		F_MSVC_STATIC_RUNTIME = 4u
+		F_MSVC_STATIC_RUNTIME = 4u,
+
+		//package the created jar file into an executable,
+		//only for java
+		F_PACKAGE_JAR = 5u
 	};
 	
 	struct ProfileData
@@ -279,45 +329,51 @@ namespace KalaMake::Core
 		//what is the name of this profile
 		string profileName{};
 
-		//what is the target type of the binary, required
+		//what is the target type of the binary
 		BinaryType binaryType{};
-		//which compiler launcher runs before the compiler
+		//which compiler launcher runs before the compiler,
+		//only for C and C++
 		CompilerLauncherType compilerLauncher{};
-		//which compiler is used to compile this binary source code, required
+		//which compiler is used to compile this binary source code
 		CompilerType compiler{};
 		//which language standard is used to compile this source code,
-		//only for C, C++, C#, Rust and Java, required for supported standards
+		//only for C, C++ and java
 		StandardType standard{};
 		//what is the target platform of the binary,
-		//supports zig, clang, clang++, gcc and g++
+		//only for C and C++
 		TargetType targetType{};
-		//how many parallel compilation jobs are allowed
+		//how many parallel compilation jobs are allowed,
+		//only for C and C++
 		u16 jobs{};
 
-		//what is the target type of the binary, required
+		//what is the target type of the binary
 		string binaryName{};
-		//which build type is the binary, required
+		//which build type is the binary,
+		//only for C, C++ and java
 		BuildType buildType{};
-		//where is the binary built to, required
+		//where is the binary built to
 		path buildPath{};
-		//where are the source code files of the binary located, required
+		//where are the source code files of the binary located
 		vector<path> sources{};
 		//where are the header files of the binary located,
-		//only for C and C++, optional
+		//only for C and C++
 		vector<path> headers{};
 		//what links will be added to the binary,
-		//only for C, C++ and Rust, optional
+		//only for C and C++
 		vector<path> links{};
-		//what warning level will compilation and linking use, defaults to 'none'
+		//what warning level will compilation and linking use, defaults to 'none',
+		//only for C and C++
 		WarningLevel warningLevel;
 		//what defines will be added to the binary,
-		//only for C, C++ and Rust, optional
+		//only for C and C++
 		vector<string> defines{};
-		//what flags will be passed to the compiler stage, optional
+		//what flags will be passed to the compiler stage,
+		//only for C, C++ and java
 		vector<string> compileFlags{};
-		//what flags will be passed to the link stage, optional
+		//what flags will be passed to the link stage,
+		//only for C and C++
 		vector<string> linkFlags{};
-		//what kalamake-specific flags will trigger extra actions, optional
+		//what kalamake-specific flags will trigger extra actions
 		vector<CustomFlag> customFlags{};
 
 		//what actions will be done before generation, compilation and linking starts

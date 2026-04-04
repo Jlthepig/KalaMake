@@ -14,6 +14,7 @@ namespace KalaMake::Language
 	class LanguageCore
 	{
 	public:
-		static void Compile(GlobalData& globalData);
+		static void Compile_C_CPP(GlobalData& globalData);
+		static void Compile_Java(GlobalData& globalData);
 	};
 }
