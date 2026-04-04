@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <vector>
 #include <filesystem>
+#include <fstream>
 
 #include "log_utils.hpp"
 #include "file_utils.hpp"
@@ -23,6 +24,7 @@ using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::CreateNewDirectory;
 using KalaHeaders::KalaFile::DeletePath;
+using KalaHeaders::KalaFile::CopyPath;
 
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
@@ -45,7 +47,11 @@ using std::filesystem::current_path;
 using std::filesystem::file_time_type;
 using std::filesystem::last_write_time;
 using std::filesystem::directory_iterator;
+using std::filesystem::recursive_directory_iterator;
 using std::filesystem::is_empty;
+using std::filesystem::is_directory;
+using std::ifstream;
+using std::getline;
 
 using u16 = uint16_t;
 
@@ -103,23 +109,11 @@ void PreCheck(GlobalData& globalData)
 			"LANGUAGE_JAVA",
 			"Field 'headers' is not supported in Java!");
     }
-    if (!globalData.targetProfile.links.empty())
-    {
-        KalaMakeCore::CloseOnError(
-			"LANGUAGE_JAVA",
-			"Field 'links' is not supported in Java!");
-    }
     if (globalData.targetProfile.warningLevel != WarningLevel::W_INVALID)
     {
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_JAVA",
 			"Field 'warninglevel' is not supported in Java!");
-    }
-    if (!globalData.targetProfile.defines.empty())
-    {
-        KalaMakeCore::CloseOnError(
-			"LANGUAGE_JAVA",
-			"Field 'defines' is not supported in Java!");
     }
     if (!globalData.targetProfile.linkFlags.empty())
     {
@@ -135,6 +129,39 @@ void PreCheck(GlobalData& globalData)
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_JAVA",
 			"Custom flag 'export-compile-commands' is not supported in Java!");
+	}
+
+	if (!globalData.targetProfile.links.empty())
+	{
+		if (globalData.targetProfile.links.size() > 1)
+		{
+			KalaMakeCore::CloseOnError(
+				"LANGUAGE_JAVA",
+				"Field 'links' only allows one value in Java!");
+		}
+		if (!is_directory(globalData.targetProfile.links[0]))
+		{
+			KalaMakeCore::CloseOnError(
+				"LANGUAGE_JAVA",
+				"Field 'links' value must be a directory!");
+		}
+
+		bool foundJar{};
+		for (const auto& f : directory_iterator(globalData.targetProfile.links[0]))
+		{
+			if (is_regular_file(path(f))
+				&& path(f).extension() == ".jar")
+			{
+				foundJar = true;
+				break;
+			}
+		}
+		if (!foundJar)
+		{
+			KalaMakeCore::CloseOnError(
+				"LANGUAGE_JAVA",
+				"Field 'links' directory did not contain any jar files!");
+		}
 	}
 
     //
@@ -348,6 +375,25 @@ void Compile_Final(const GlobalData& globalData)
 
 			command += "--release " + string(standard).erase(0, 4);
 
+			//set module path
+
+			if (!globalData.targetProfile.links.empty())
+			{
+				command += " --module-path \"" + globalData.targetProfile.links[0].string() + "\"";
+			}
+
+			//add modules
+
+			if (!globalData.targetProfile.defines.empty())
+			{
+				command += " --add-modules ";
+				for (const auto& d : globalData.targetProfile.defines)
+				{
+					command += d + ",";
+				}
+				command.pop_back();
+			}
+
 			//set flags
 
 			vector<string> finalFlags = globalData.targetProfile.compileFlags;
@@ -409,7 +455,7 @@ void Compile_Final(const GlobalData& globalData)
 			{
 				for (const auto& j : globalData.targetProfile.sources)
 				{
-					for (const auto& c : directory_iterator(classDir))
+					for (const auto& c : recursive_directory_iterator(classDir))
 					{
 						if (last_write_time(j) > last_write_time(c)
 							|| kmakeTime > last_write_time(c))
@@ -449,8 +495,9 @@ void Compile_Final(const GlobalData& globalData)
 			}
 
 			vector<path> compiledClasses{};
-			for (const auto& c : directory_iterator(classDir))
+			for (const auto& c : recursive_directory_iterator(classDir))
 			{
+				if (is_directory(c)) continue;
 				compiledClasses.push_back(c);
 
 				if (c.path().stem() == "Main"
@@ -458,6 +505,13 @@ void Compile_Final(const GlobalData& globalData)
 				{
 					mainClass = c.path();
 				}
+			}
+
+			if (mainClass.empty())
+			{
+				KalaMakeCore::CloseOnError(
+					"LANGUAGE_JAVA",
+					"Failed to find main class!");
 			}
 
 			return compiledClasses;
@@ -478,7 +532,32 @@ void Compile_Final(const GlobalData& globalData)
 
 			//set main class
 
-			command += " --main-class " + mainClass.stem().string();
+			auto get_package_name = []() -> string
+				{
+					ifstream file(mainJava);
+					if (!file.is_open())
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_JAVA",
+							"Failed to open main class for package retrieval!");
+					}
+
+					string line{};
+
+					while (getline(file, line))
+					{
+						if (line.rfind("package ", 0) == 0)
+						{
+							string package = line.substr(8);
+							package = package.substr(0, package.find(';'));
+							return package + ".";
+						}
+					}
+
+					return "";
+				};
+
+			command += " --main-class " + get_package_name() + mainClass.stem().string();
 
 			//add class file dir
 
@@ -550,6 +629,10 @@ void Compile_Final(const GlobalData& globalData)
 			string command = "jpackage";
 			string jarName = jarPath.filename().string();
 
+			path jarDir = 
+				globalData.targetProfile.buildPath 
+				/ globalData.targetProfile.binaryName;
+
 			path buildPath = 
 #ifdef _WIN32
 				globalData.targetProfile.buildPath 
@@ -563,6 +646,80 @@ void Compile_Final(const GlobalData& globalData)
 #endif
 
 			//set input
+
+			auto needs_copy = [](
+				const path& oldFile,
+				const path& newFile) -> bool
+				{
+					return last_write_time(oldFile) > last_write_time(newFile);
+				};
+
+			if (!globalData.targetProfile.links.empty())
+			{
+				vector<path> toBeCopied{};
+				vector<path> targetDoesNotContain{};
+
+				for (const auto& oldFile : directory_iterator(globalData.targetProfile.links[0]))
+				{
+					path of = path(oldFile);
+					if (of.stem() == "Main"
+						|| of.stem() == "main"
+						|| is_directory(of)
+						|| (is_regular_file(of)
+						&& of.extension() != ".jar"))
+					{
+						continue;
+					}
+
+					bool foundFile{};
+
+					for (const auto& newFile : directory_iterator(jarDir))
+					{
+						path nf = path(newFile);
+						if (nf.stem() == "Main"
+							|| nf.stem() == "main")
+						{
+							continue;
+						}
+
+						if (of.stem() == nf.stem())
+						{
+							foundFile = true;
+
+							if (needs_copy(oldFile, nf))
+							{
+								toBeCopied.push_back(oldFile);
+							}
+
+							break;
+						}
+					}
+
+					if (!foundFile) targetDoesNotContain.push_back(oldFile);
+					foundFile = false;
+				}
+
+				for (const auto& f : targetDoesNotContain)
+				{
+					string errorMsg = CopyPath(f, jarDir / path(f).filename());
+					if (!errorMsg.empty())
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_JAVA",
+							"Failed to copy jar file to target dir! Reason: " + errorMsg);
+					}
+				}
+				for (const auto& f : toBeCopied)
+				{
+					string errorMsg = CopyPath(f, jarDir / path(f).filename(), true);
+					if (!errorMsg.empty())
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_JAVA",
+							"Failed to overwrite jar file at target dir! Reason: " + errorMsg);
+					}
+				}
+			}
 
 			path inputPath = globalData.targetProfile.buildPath;
 			command += " --input \"" + inputPath.string() + "\"";

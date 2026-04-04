@@ -437,16 +437,16 @@ namespace KalaMake::Core
 
 	static const unordered_map<StandardType, string_view, EnumHash<StandardType>> standardTypes =
 	{
-		{ StandardType::C_89,     standard_c89 },
-		{ StandardType::C_99,     standard_c99 },
-		{ StandardType::C_11,     standard_c11 },
-		{ StandardType::C_17,     standard_c17 },
-		{ StandardType::C_23,     standard_c23 },
+		{ StandardType::C_89, standard_c89 },
+		{ StandardType::C_99, standard_c99 },
+		{ StandardType::C_11, standard_c11 },
+		{ StandardType::C_17, standard_c17 },
+		{ StandardType::C_23, standard_c23 },
 
-		{ StandardType::CPP_98,  standard_cpp98 },
-		{ StandardType::CPP_03,  standard_cpp03 },
-		{ StandardType::CPP_11,  standard_cpp11 },
-		{ StandardType::CPP_14,  standard_cpp14 },
+		{ StandardType::CPP_98, standard_cpp98 },
+		{ StandardType::CPP_03, standard_cpp03 },
+		{ StandardType::CPP_11, standard_cpp11 },
+		{ StandardType::CPP_14, standard_cpp14 },
 		{ StandardType::CPP_17, standard_cpp17 },
 		{ StandardType::CPP_20, standard_cpp20 },
 		{ StandardType::CPP_23, standard_cpp23 },

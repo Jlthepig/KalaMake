@@ -195,7 +195,7 @@ Describes what libraries this binary will link to. Supports quoted relative and 
 
 Links support exclusion with the `!` symbol in front of the file or dir name, globbed paths do not support exclusion.
 
-Links are not supported in Java.
+Java only supports one directory value in the links field. Use it as the directory where your jar libraries are that you wish to include during jpackage phase.
 
 ```
 //exclude a library
@@ -220,7 +220,7 @@ Warning level is not supported in Java.
 
 Describes what defines to pass to the compiler. `-D` and `/D` are added in front of the define internally. Can add multiple values.
 
-Defines are not supported in Java.
+Defines are used as module values in Java, like for example `defines: javafx.base`.
 
 ### compileflags
 

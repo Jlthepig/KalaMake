@@ -93,7 +93,7 @@ namespace KalaMake::Core
 		//only for C and C++
 		T_HEADERS = 11u,
 		//what links will be added to the binary,
-		//only for C and C++
+		//only for C, C++ and Java
 		T_LINKS = 12u,
 		//what warning level will compilation and linking use, defaults to 'none',
 		//only for C and C++
@@ -232,8 +232,8 @@ namespace KalaMake::Core
 		JAVA_22 = 36u,
 		JAVA_23 = 37u,
 		JAVA_24 = 38u,
-		JAVA_25 = 38u,
-		JAVA_26 = 39u
+		JAVA_25 = 39u,
+		JAVA_26 = 40u
 	};
 
 	//Allowed target types in C and C++ that can be added to the targettype field,
@@ -363,7 +363,7 @@ namespace KalaMake::Core
 		//only for C and C++
 		vector<path> headers{};
 		//what links will be added to the binary,
-		//only for C and C++
+		//only for C, C++ and Java
 		vector<path> links{};
 		//what warning level will compilation and linking use, defaults to 'none',
 		//only for C and C++
