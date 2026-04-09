@@ -4,12 +4,16 @@ KalaMake is a multithreaded CLI for building libraries and executables with `.km
 
 KalaMake currently accepts several commands, most of which come from [KalaCLI](https://github.com/kalakit/kalacli) which is statically linked to KalaMake. Type '--help' to list all available commands and type --info commandnamehere to list info about that command.
 
-Currently supported languages:
+This project relies on several [external dependencies](https://github.com/greeenlaser/external-shared), they are not shipped inside this project, please make sure you have that repository cloned into a folder inside the same parent directory as this project folder before compiling this project from source.
+
+## Cupported languages
+
 - C89 to C23
 - C++98 to C++26
 - Java 8 to Java 26
 
-Upcoming languages:
+## Upcoming languages
+
 - Python
 - Rust
 - C#
