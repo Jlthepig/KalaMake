@@ -97,7 +97,7 @@ static void AddExternalCommands()
 				return;
 			}
 
-			Log::Print("KalaMake 1.2");
+			Log::Print("KalaMake 1.3");
 		};
 
 	CommandManager::AddCommand(

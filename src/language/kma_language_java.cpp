@@ -30,13 +30,12 @@ using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
 using KalaMake::Core::BinaryType;
 using KalaMake::Core::CompilerLauncherType;
+using KalaMake::Core::StandardType;
 using KalaMake::Core::TargetType;
 using KalaMake::Core::BuildType;
 using KalaMake::Core::WarningLevel;
 using KalaMake::Core::CustomFlag;
 using KalaMake::Core::CompileCommand;
-using KalaMake::Core::VSCode_Launch;
-using KalaMake::Core::VSCode_Task;
 
 using std::string;
 using std::string_view;
@@ -61,8 +60,10 @@ static vector<CompileCommand> commands{};
 
 static file_time_type kmakeTime{};
 static file_time_type jarTime{};
+
 static path mainJava{};
 static path mainClass{};
+static string mainClassValue{};
 
 static void PreCheck(GlobalData& globalData);
 
@@ -97,6 +98,12 @@ void PreCheck(GlobalData& globalData)
 			"LANGUAGE_JAVA",
 			"Field 'compilerlauncher' is not supported in Java!");
     }
+    if (globalData.targetProfile.standard == StandardType::S_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Field 'standard' must be assigned in Java!");
+    }
     if (globalData.targetProfile.targetType != TargetType::T_INVALID)
     {
         KalaMakeCore::CloseOnError(
@@ -122,6 +129,13 @@ void PreCheck(GlobalData& globalData)
 			"Field 'linkflags' is not supported in Java!");
     }
 
+    if (globalData.targetProfile.jobs != 0)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Field 'jobs' is not supported in Java!");
+    }
+
 	if (ContainsValue(
 			globalData.targetProfile.customFlags, 
 			CustomFlag::F_EXPORT_COMPILE_COMMANDS))
@@ -129,6 +143,14 @@ void PreCheck(GlobalData& globalData)
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_JAVA",
 			"Custom flag 'export-compile-commands' is not supported in Java!");
+	}
+	if (ContainsValue(
+			globalData.targetProfile.customFlags, 
+			CustomFlag::F_EXPORT_VSCODE_SLN))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Custom flag 'export-vscode-sln' is not supported in Java!");
 	}
 
 	if (!globalData.targetProfile.links.empty())
@@ -279,8 +301,42 @@ void PreCheck(GlobalData& globalData)
 		if (target.stem() == "Main"
 			|| target.stem() == "main")
 		{
+			if (foundMain)
+			{
+				KalaMakeCore::CloseOnError(
+					"LANGUAGE_JAVA",
+					"Cannot have more than one main Java script! Make sure more than one or both Main.java and main.java don't exist.");
+			}
+
 			foundMain = true;
 			mainJava = target;
+
+			auto get_package_name = []() -> string
+				{
+					ifstream file(mainJava);
+					if (!file.is_open())
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_JAVA",
+							"Failed to open main class for package retrieval!");
+					}
+
+					string line{};
+
+					while (getline(file, line))
+					{
+						if (line.rfind("package ", 0) == 0)
+						{
+							string package = line.substr(8);
+							package = package.substr(0, package.find(';'));
+							return package + ".";
+						}
+					}
+
+					return "";
+				};
+
+			mainClassValue = get_package_name() + mainJava.stem().string();
 		}
 
 		finalSources.push_back(target);
@@ -532,32 +588,7 @@ void Compile_Final(const GlobalData& globalData)
 
 			//set main class
 
-			auto get_package_name = []() -> string
-				{
-					ifstream file(mainJava);
-					if (!file.is_open())
-					{
-						KalaMakeCore::CloseOnError(
-							"LANGUAGE_JAVA",
-							"Failed to open main class for package retrieval!");
-					}
-
-					string line{};
-
-					while (getline(file, line))
-					{
-						if (line.rfind("package ", 0) == 0)
-						{
-							string package = line.substr(8);
-							package = package.substr(0, package.find(';'));
-							return package + ".";
-						}
-					}
-
-					return "";
-				};
-
-			command += " --main-class " + get_package_name() + mainClass.stem().string();
+			command += " --main-class " + mainClassValue;
 
 			//add class file dir
 

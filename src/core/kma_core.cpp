@@ -550,12 +550,6 @@ namespace KalaMake::Core
 						"KALAMAKE",
 						"No compiler was passed!");
 				}
-				if (globalData.targetProfile.standard == StandardType::S_INVALID)
-				{
-					KalaMakeCore::CloseOnError(
-						"KALAMAKE",
-						"No standard was passed!");
-				}
 				
 				if (globalData.targetProfile.binaryName.empty())
 				{
@@ -588,11 +582,18 @@ namespace KalaMake::Core
 						"No sources were passed!");
 				}
 
-				//assign cpu thread count if none was assigned
-				if (globalData.targetProfile.jobs == 0) globalData.targetProfile.jobs = GetThreadCount();
-
-				if (globalData.targetProfile.compiler != CompilerType::C_JAVA)
+				if (globalData.targetProfile.compiler == CompilerType::C_CLANG_CL
+					|| globalData.targetProfile.compiler == CompilerType::C_CL
+					|| globalData.targetProfile.compiler == CompilerType::C_CLANG
+					|| globalData.targetProfile.compiler == CompilerType::C_CLANGPP
+					|| globalData.targetProfile.compiler == CompilerType::C_GCC
+					|| globalData.targetProfile.compiler == CompilerType::C_GPP
+					|| (globalData.targetProfile.compiler == CompilerType::C_ZIG
+					&& globalData.targetProfile.standard != StandardType::S_INVALID))
 				{
+					//assign cpu thread count if none was assigned
+					if (globalData.targetProfile.jobs == 0) globalData.targetProfile.jobs = GetThreadCount();
+
 					Log::Print(
 						"Using '" + to_string(globalData.targetProfile.jobs) + "' jobs for compilation.\n",
 						"KALAMAKE",
@@ -617,7 +618,12 @@ namespace KalaMake::Core
 					|| c == CompilerType::C_GCC
 					|| c == CompilerType::C_GPP)
 				{
-					LanguageCore::Compile_C_CPP(globalData);
+					if (c == CompilerType::C_ZIG
+						&& globalData.targetProfile.standard == StandardType::S_INVALID)
+					{
+						LanguageCore::Compile_Zig(globalData);
+					}
+					else LanguageCore::Compile_C_CPP(globalData);
 				}
 				else if (c == CompilerType::C_JAVA)
 				{
@@ -1441,6 +1447,8 @@ void ExtractFieldData(
 	else 
 	{
 		if (name != field_defines
+			&& name != field_compile_flags
+			&& name != field_link_flags
 			&& trimmedValue.find('"') != string::npos)
 		{
 			KalaMakeCore::CloseOnError(
@@ -2425,13 +2433,6 @@ string TranslateReferences(string_view value)
 		{
 			size_t refBracketPos = result.find('{', start);
 
-			if (refBracketPos == string::npos)
-			{
-				KalaMakeCore::CloseOnError(
-					"KALAMAKE",
-					"Failed to find dereference values in field value '" + result + "' because a reference was not followed by a starting bracket!");
-			}
-
 			//find ref start here before the closing bracket and jump to child
 			size_t childRef = result.find('$', refBracketPos + 1);
 			while (childRef != string::npos
@@ -2489,11 +2490,16 @@ string TranslateReferences(string_view value)
 				replacement);
 		};
 
-	size_t refPos;
-
-	while ((refPos = result.find('$')) != string::npos)
+	for (size_t i = 0; i < result.size(); i++)
 	{
-		replace_ref(refPos);
+		if (result[i] == '$')
+		{
+			if (i + 1 < result.size() 
+				&& result[i + 1] == '{')
+			{
+				replace_ref(i);
+			}
+		}
 	}
 
 	return result;

@@ -300,19 +300,32 @@ namespace KalaMake::Core
                 "        {",
                 "            \"name\": \"" + launch.name + "\",",
                 "            \"type\": \"" + launch.type + "\",",
-                "            \"request\": \"launch\",",
-                "            \"program\": \"" + program + "\",",
-                "            \"args\": [],",
-                "            \"cwd\": \"${workspaceFolder}\",",
-                "            \"stopAtEntry\": false,",
-#ifdef _WIN32
-                "            \"console\": \"integratedTerminal\"",
-#else
-                "            \"MIMode\": \"gdb\",",
-                "            \"miDebuggerPath\": \"/usr/bin/gdb\"",
-#endif
-                "        },"
+                "            \"request\": \"launch\","
+                
             };
+
+            if (launch.type == "cppvsdbg"
+                || launch.type == "cppdbg"
+                || launch.type == "lldb")
+            {
+                newProfileLines.push_back("            \"program\": \"" + program + "\",");
+                newProfileLines.push_back("            \"args\": [],");
+                newProfileLines.push_back("            \"cwd\": \"${workspaceFolder}\",");
+            }
+
+            if (launch.type == "cppvsdbg"
+                || launch.type == "cppdbg")
+            {
+                newProfileLines.push_back("            \"stopAtEntry\": false,");
+#ifdef _WIN32
+                newProfileLines.push_back("            \"console\": \"integratedTerminal\"");
+#else
+                newProfileLines.push_back("            \"MIMode\": \"gdb\",");
+                newProfileLines.push_back("            \"miDebuggerPath\": \"/usr/bin/gdb\"");
+#endif
+            }
+
+            newProfileLines.push_back("        },");
 
             if (launchLines.empty())
             {

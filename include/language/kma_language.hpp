@@ -16,5 +16,6 @@ namespace KalaMake::Language
 	public:
 		static void Compile_C_CPP(GlobalData& globalData);
 		static void Compile_Java(GlobalData& globalData);
+		static void Compile_Zig(GlobalData& globalData);
 	};
 }

@@ -163,6 +163,13 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+    if (globalData.targetProfile.standard == StandardType::S_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Field 'standard' must be assigned in C and C++!");
+    }
+
 	if (ContainsValue(
 		globalData.targetProfile.customFlags, 
 		CustomFlag::F_PACKAGE_JAR))
@@ -1112,6 +1119,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
 				{
 					if (!binaryName.ends_with(".so")) extension = ".so";
+					if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{
@@ -1127,6 +1135,7 @@ void Compile_Final(const GlobalData& globalData)
 					|| globalData.targetProfile.targetType == TargetType::T_WINDOWS_GNU)
 				{
 					if (!binaryName.ends_with(".a")) extension = ".a";
+					if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{

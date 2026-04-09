@@ -161,7 +161,7 @@ namespace KalaMake::Core
 		// C/C++
 		//
 
-		//windows + linux, target-specific flags
+		//C, C++ and Zig language, windows + linux, target-specific flags
 		C_ZIG = 1u,
 
 		//windows only, MSVC-style flags
@@ -179,7 +179,7 @@ namespace KalaMake::Core
 		C_GPP = 7u,
 
 		//
-		// PYTHON
+		// OTHERS
 		//
 
 		//general java compiler

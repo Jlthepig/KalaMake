@@ -11,6 +11,7 @@ This project relies on several [external dependencies](https://github.com/greeen
 - C89 to C23
 - C++98 to C++26
 - Java 8 to Java 26
+- Zig (the language)
 
 ## Upcoming languages
 
@@ -19,7 +20,7 @@ This project relies on several [external dependencies](https://github.com/greeen
 - C#
 - Go
 
-Currently only Windows (x86_64) and Linux (x86_64) are supported but BSD support will be added very soon. There are no plans to support mobile, console, ARM, x86 or macOS.
+Currently only Windows (x86_64) and Linux (x86_64) are supported. There are no plans to support mobile, console, ARM, x86 or macOS.
 
 ## Links
 

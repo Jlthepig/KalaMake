@@ -97,7 +97,7 @@ Available values:
 - distcc - sends compile jobs to other servers
 - icecc - same as distcc but ships compiler toolchain too
 
-Compiler launcher is not supported in Java.
+Compiler launcher is not supported in Java and Zig.
     
 ### compiler
 
@@ -110,7 +110,7 @@ Available values:
 - g++
 - clang
 - clang++
-- zig
+- zig (also used for the zig language)
 - java
     
 ### standard
@@ -134,6 +134,8 @@ Available values:
 - c++26
 
 - java8 to java26
+
+Standard is not supported in Zig.
     
 ### targettype
 
@@ -150,11 +152,13 @@ Target type is not supported in Java.
 
 Describes how many jobs to use for the compilation pass. More jobs = more parallel threads for each source script. It is recommended to have up to 2x as many jobs as you have logical cores available on your cpu, limited from 1 to 65535. Only one value is allowed.
 
-Jobs are not supported in Java.
+Jobs are not supported in Java and Zig.
 
 ### binaryname
 
 Give a name for what your binary will be called. Extension is not needed. Only one value is allowed.
+
+C/C++ and Zig always add lib in front of their binary name on Linux if its missing.
 
 ### buildtype
 
@@ -187,7 +191,7 @@ sources: "!myfile.cpp"
 
 Describes what headers this binary will use. Supports quoted relative and full paths to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
 
-Headers are not supported in Java.
+Headers are not supported in Java and Zig.
 
 ### links
 
@@ -214,13 +218,13 @@ Available values:
 - strict - very strict, high signal warnings
 - all - all warnings
 
-Warning level is not supported in Java.
+Warning level is not supported in Java and Zig.
     
 ### defines
 
 Describes what defines to pass to the compiler. `-D` and `/D` are added in front of the define internally. Can add multiple values.
 
-Defines are used as module values in Java, like for example `defines: javafx.base`.
+Defines are used as module values in Java, like for example `defines: javafx.base`. Defines are not supported in Zig.
 
 ### compileflags
 
@@ -230,7 +234,7 @@ Describes what flags will be added during the compile stage. `-` and `/` are add
 
 Describes what flags will be added during the link stage. `-` and `/` are added in front of the flag internally. Can add multiple values.
 
-Link flags are not supported in Java.
+Link flags are not supported in Java and Zig.
 
 ### customflags
 
@@ -244,8 +248,8 @@ Available values:
 - package-jar - optional post-jar task to also package the created jar file into an executable
 - java-win-console - print java executable logs to console on windows
 
-Export-compile-commands is not supported in Java.
-Package-jar and java-win-console are not supported in C and C++.
+Export-compile-commands is not supported in Java and Zig.
+Package-jar and java-win-console are not supported in C, C++ and Zig.
     
 ### prebuildaction
 

@@ -26,4 +26,11 @@
 - added new standards: java8 - java26
 - added new custom flags: 'package-jar', 'java-win-console'
 
+## 1.3
 
+- added new compiler: zig
+- added export-vscode-sln generation support for zig
+- properly block the usage of export-vscode-sln generation in java
+- add lib in front of .so and .a for zig and c/cpp if missing in binary name
+- compile and link flags are allowed to use quotes
+- can use variables with just $ at their start and with no brackets (example: $ORIGIN) as long as they dont contain a starting curly bracket
