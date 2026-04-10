@@ -151,6 +151,23 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+	//
+	// ENSURE REQUIRED FIELDS ARE NOT MISSING
+	//
+
+    if (globalData.targetProfile.standard == StandardType::S_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Field 'standard' must be assigned in Java!");
+    }
+	if (globalData.targetProfile.buildType == BuildType::B_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Field 'buildtype' must be assigned in Java!");
+    }
+
     //
     // ENSURE UNSUPPORTED FIELDS ARE NOT USED
     //
@@ -166,12 +183,6 @@ void PreCheck(GlobalData& globalData)
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_JAVA",
 			"Field 'compilerlauncher' is not supported in Java!");
-    }
-    if (globalData.targetProfile.standard == StandardType::S_INVALID)
-    {
-        KalaMakeCore::CloseOnError(
-			"LANGUAGE_JAVA",
-			"Field 'standard' must be assigned in Java!");
     }
     if (globalData.targetProfile.targetType != TargetType::T_INVALID)
     {
@@ -213,6 +224,22 @@ void PreCheck(GlobalData& globalData)
 			"LANGUAGE_JAVA",
 			"Custom flag 'export-compile-commands' is not supported in Java!");
 	}
+    if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_MSVC_STATIC_RUNTIME))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Custom flag 'msvc-static-runtime' is not supported in Java!");
+	}
+    if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_PYTHON_ONE_FILE))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_JAVA",
+			"Custom flag 'python-one-file' is not supported in Java!");
+	}
 
 	if (!globalData.targetProfile.links.empty())
 	{
@@ -251,17 +278,62 @@ void PreCheck(GlobalData& globalData)
 	// FILTER OUT BAD SOURCE FILES 
 	//
 
-	for (const auto& j : globalData.targetProfile.sources)
+	for (const auto& p : globalData.targetProfile.sources)
 	{
-		if ((j.stem() == "Main"
-			|| j.stem() == "main")
-			&& is_empty(j))
+		if ((p.stem() == "Main"
+			|| p.stem() == "main"))
 		{
-			KalaMakeCore::CloseOnError(
-				"LANGUAGE_JAVA",
-				"Main.java was empty!");
+			if (!mainJava.empty())
+			{
+                KalaMakeCore::CloseOnError(
+				    "LANGUAGE_JAVA",
+				    "Cannot have more than one main Java script! Please ensure you only have one Main.java or main.java script, and not both.");
+			}
+
+            if (is_empty(p))
+            {
+                KalaMakeCore::CloseOnError(
+				    "LANGUAGE_JAVA",
+				    "Main Java script was empty!");
+            }
+
+            mainJava = p;
+
+			auto get_package_name = []() -> string
+				{
+					ifstream file(mainJava);
+					if (!file.is_open())
+					{
+						KalaMakeCore::CloseOnError(
+							"LANGUAGE_JAVA",
+							"Failed to open main class for package retrieval!");
+					}
+
+					string line{};
+
+					while (getline(file, line))
+					{
+						if (line.rfind("package ", 0) == 0)
+						{
+							string package = line.substr(8);
+							package = package.substr(0, package.find(';'));
+							return package + ".";
+						}
+					}
+
+					return "";
+				};
+
+			mainClassValue = get_package_name() + mainJava.stem().string();
 		}
 	}
+
+    if (mainJava.empty())
+    {
+        KalaMakeCore::CloseOnError(
+            "LANGUAGE_JAVA",
+            "Did not find main Java script! Please ensure Main.java or main.java is added to sources.");
+    }
 
 	auto should_exclude = [](const path& target) -> bool
 		{
@@ -282,7 +354,6 @@ void PreCheck(GlobalData& globalData)
 			return target.extension() != ".java";
 		};
 
-	bool foundMain{};
 	bool foundInvalid{};
 	vector<path>& sources = globalData.targetProfile.sources;
 	vector<path> exclusions{};
@@ -358,47 +429,6 @@ void PreCheck(GlobalData& globalData)
 			foundInvalid = true;
 			continue;
 		}
-		
-		if (target.stem() == "Main"
-			|| target.stem() == "main")
-		{
-			if (foundMain)
-			{
-				KalaMakeCore::CloseOnError(
-					"LANGUAGE_JAVA",
-					"Cannot have more than one main Java script! Make sure more than one or both Main.java and main.java don't exist.");
-			}
-
-			foundMain = true;
-			mainJava = target;
-
-			auto get_package_name = []() -> string
-				{
-					ifstream file(mainJava);
-					if (!file.is_open())
-					{
-						KalaMakeCore::CloseOnError(
-							"LANGUAGE_JAVA",
-							"Failed to open main class for package retrieval!");
-					}
-
-					string line{};
-
-					while (getline(file, line))
-					{
-						if (line.rfind("package ", 0) == 0)
-						{
-							string package = line.substr(8);
-							package = package.substr(0, package.find(';'));
-							return package + ".";
-						}
-					}
-
-					return "";
-				};
-
-			mainClassValue = get_package_name() + mainJava.stem().string();
-		}
 
 		finalSources.push_back(target);
 	}
@@ -408,13 +438,6 @@ void PreCheck(GlobalData& globalData)
 		KalaMakeCore::CloseOnError(
 			"LANGUAGE_JAVA",
 			"No sources were remaining after cleaning source scripts list!");
-	}
-
-	if (!foundMain)
-	{
-		KalaMakeCore::CloseOnError(
-			"LANGUAGE_JAVA",
-			"Did not find main java script! There must be one script named Main.java or main.java.");
 	}
 
 	if (foundInvalid) 
@@ -573,19 +596,15 @@ void Compile_Final(const GlobalData& globalData)
 
 			bool isAnyNewer{};
 
-			if (is_empty(classDir)) isAnyNewer = true;
-			else
+			for (const auto& j : globalData.targetProfile.sources)
 			{
-				for (const auto& j : globalData.targetProfile.sources)
+				for (const auto& c : recursive_directory_iterator(classDir))
 				{
-					for (const auto& c : recursive_directory_iterator(classDir))
+					if (last_write_time(j) > last_write_time(c)
+						|| kmakeTime > last_write_time(c))
 					{
-						if (last_write_time(j) > last_write_time(c)
-							|| kmakeTime > last_write_time(c))
-						{
-							isAnyNewer = true;
-							break;
-						}
+						isAnyNewer = true;
+						break;
 					}
 				}
 			}

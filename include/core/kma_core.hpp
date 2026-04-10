@@ -63,15 +63,17 @@ namespace KalaMake::Core
 	{
 		T_INVALID = 0u,
 
-		//what is the target type of the binary
+		//what is the target type of the binary,
+		//supported by all languages
 		T_BINARY_TYPE = 1u,
 		//which compiler launcher runs before the compiler,
 		//only for C and C++
 		T_COMPILER_LAUNCHER = 2u,
-		//which compiler is used to compile this binary source code
+		//which compiler is used to compile this binary source code,
+		//supported by all languages
 		T_COMPILER = 3u,
 		//which language standard is used to compile this source code,
-		//only for C, C++ and java
+		//only for C, C++ and Java
 		T_STANDARD = 4u,
 		//what is the target platform of the binary,
 		//only for C and C++
@@ -80,14 +82,17 @@ namespace KalaMake::Core
 		//only for C and C++
 		T_JOBS = 6u,
 
-		//what is the name of the the binary
+		//what is the name of the the binary,
+		//supported by all languages
 		T_BINARY_NAME = 7u,
 		//which build type is the binary,
-		//only for C, C++ and java
+		//only for C, C++, Java and Zig
 		T_BUILD_TYPE = 8u,
-		//where is the binary built to
+		//where is the binary built to,
+		//supported by all languages
 		T_BUILD_PATH = 9u,
-		//where are the source code files of the binary located
+		//where are the source code files of the binary located,
+		//supported by all languages
 		T_SOURCES = 10u,
 		//where are the header files of the binary located,
 		//only for C and C++
@@ -102,18 +107,21 @@ namespace KalaMake::Core
 		//only for C and C++
 		T_DEFINES = 14u,
 		//what flags will be passed to the compiler stage,
-		//only for C, C++ and java
+		//supported by all languages
 		T_COMPILE_FLAGS = 15u,
 		//what flags will be passed to the link stage,
 		//only for C and C++
 		T_LINK_FLAGS = 16u,
-		//what kalamake-specific flags will trigger extra actions
+		//what kalamake-specific flags will trigger extra actions,
+		//supported by all languages
 		T_CUSTOM_FLAGS = 17u,
 
-		//pre-build action field, can add as many as you want
+		//pre-build action field, can add as many as you want,
+		//supported by all languages
 		T_PRE_BUILD_ACTION = 18u,
 
-		//post-build action field, can add as many as you want
+		//post-build action field, can add as many as you want,
+		//supported by all languages
 		T_POST_BUILD_ACTION = 19u
 	};
 
@@ -182,12 +190,15 @@ namespace KalaMake::Core
 		// OTHERS
 		//
 
-		//general java compiler
-		C_JAVA = 8u
+		//general Java compiler
+		C_JAVA = 8u,
+
+		//general python compiler
+		C_PYTHON = 9u
 	};
 
 	//Allowed standard types that can be added to the standard field,
-	//only for C, C++ and java
+	//only for C, C++ and Java
 	enum class StandardType : u8
 	{
 		S_INVALID = 0u,
@@ -253,7 +264,7 @@ namespace KalaMake::Core
 	};
 
 	//Allowed build types that can be added to the buildtype field,
-	//only for C, C++ and java
+	//only for C, C++ and Java
 	enum class BuildType : u8
 	{
 		B_INVALID = 0u,
@@ -265,11 +276,11 @@ namespace KalaMake::Core
 		B_RELEASE = 2u,
 
 		//creates a release binary with debug flag,
-		//same as release on java
+		//same as release on Java
 		B_RELDEBUG = 3u,
 
 		//creates a release binary with smallest size flags,
-		//same as release on java
+		//same as release on Java
 		B_MINSIZEREL = 4u
 	};
 
@@ -320,16 +331,21 @@ namespace KalaMake::Core
 		F_MSVC_STATIC_RUNTIME = 4u,
 
 		//package the created jar file into an executable,
-		//only for java
+		//only for Java
 		F_PACKAGE_JAR = 5u,
 
 		//attaches the jpackage-made exe to windows console,
-		//only for java
+		//only for Java
 		F_JAVA_WIN_CONSOLE = 6u,
 
 		//creates .classpath file in project root like compile_commans.json,
-		//only for java
-		F_EXPORT_JAVA_SLN = 7u
+		//only for Java
+		F_EXPORT_JAVA_SLN = 7u,
+
+		//pyinstaller bundles everything into a single exe, all files are extracted at each run,
+		//otherwise it creates a dir with all content with faster startup.
+		//only for Python
+		F_PYTHON_ONE_FILE = 8u
 	};
 	
 	struct ProfileData
@@ -337,15 +353,17 @@ namespace KalaMake::Core
 		//what is the name of this profile
 		string profileName{};
 
-		//what is the target type of the binary
+		//what is the target type of the binary,
+		//supported by all languages
 		BinaryType binaryType{};
 		//which compiler launcher runs before the compiler,
 		//only for C and C++
 		CompilerLauncherType compilerLauncher{};
-		//which compiler is used to compile this binary source code
+		//which compiler is used to compile this binary source code,
+		//supported by all languages
 		CompilerType compiler{};
 		//which language standard is used to compile this source code,
-		//only for C, C++ and java
+		//only for C, C++ and Java
 		StandardType standard{};
 		//what is the target platform of the binary,
 		//only for C and C++
@@ -354,14 +372,17 @@ namespace KalaMake::Core
 		//only for C and C++
 		u16 jobs{};
 
-		//what is the target type of the binary
+		//what is the target type of the binary,
+		//supported by all languages
 		string binaryName{};
 		//which build type is the binary,
-		//only for C, C++ and java
+		//only for C, C++ and Java
 		BuildType buildType{};
-		//where is the binary built to
+		//where is the binary built to,
+		//supported by all languages
 		path buildPath{};
-		//where are the source code files of the binary located
+		//where are the source code files of the binary located,
+		//supported by all languages
 		vector<path> sources{};
 		//where are the header files of the binary located,
 		//only for C and C++
@@ -376,12 +397,13 @@ namespace KalaMake::Core
 		//only for C and C++
 		vector<string> defines{};
 		//what flags will be passed to the compiler stage,
-		//only for C, C++ and java
+		//only for C, C++ and Java
 		vector<string> compileFlags{};
 		//what flags will be passed to the link stage,
 		//only for C and C++
 		vector<string> linkFlags{};
-		//what kalamake-specific flags will trigger extra actions
+		//what kalamake-specific flags will trigger extra actions,
+		//supported by all languages
 		vector<CustomFlag> customFlags{};
 
 		//what actions will be done before generation, compilation and linking starts

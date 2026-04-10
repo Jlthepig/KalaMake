@@ -131,6 +131,7 @@ constexpr string_view compiler_clangpp  = "clang++";
 constexpr string_view compiler_gcc      = "gcc";
 constexpr string_view compiler_gpp      = "g++";
 constexpr string_view compiler_java     = "java";
+constexpr string_view compiler_python   = "python";
 
 constexpr string_view standard_c89    = "c89";
 constexpr string_view standard_c99    = "c99";
@@ -188,6 +189,7 @@ constexpr string_view custom_msvc_static_runtime = "msvc-static-runtime";
 constexpr string_view custom_package_jar         = "package-jar";
 constexpr string_view custom_java_win_console    = "java-win-console";
 constexpr string_view custom_export_java_sln     = "export-java-sln";
+constexpr string_view custom_python_one_file     = "python-one-file";
 
 //kma path is the root directory where the kmake file is stored at
 static path kmaPath{};
@@ -433,7 +435,8 @@ namespace KalaMake::Core
 		{ CompilerType::C_GCC,     compiler_gcc },
 		{ CompilerType::C_GPP,     compiler_gpp },
 
-		{ CompilerType::C_JAVA, compiler_java }
+		{ CompilerType::C_JAVA,   compiler_java },
+		{ CompilerType::C_PYTHON, compiler_python }
 	};
 
 	static const unordered_map<StandardType, string_view, EnumHash<StandardType>> standardTypes =
@@ -511,7 +514,8 @@ namespace KalaMake::Core
 		{ CustomFlag::F_MSVC_STATIC_RUNTIME,     custom_msvc_static_runtime },
 		{ CustomFlag::F_PACKAGE_JAR,             custom_package_jar },
 		{ CustomFlag::F_JAVA_WIN_CONSOLE,        custom_java_win_console },
-		{ CustomFlag::F_EXPORT_JAVA_SLN,         custom_export_java_sln }
+		{ CustomFlag::F_EXPORT_JAVA_SLN,         custom_export_java_sln },
+		{ CustomFlag::F_PYTHON_ONE_FILE,         custom_python_one_file }
 	};
 
 	void KalaMakeCore::OpenFile(
@@ -564,12 +568,6 @@ namespace KalaMake::Core
 					KalaMakeCore::CloseOnError(
 						"KALAMAKE",
 						"Passed binary name is too long!");
-				}
-				if (globalData.targetProfile.buildType == BuildType::B_INVALID)
-				{
-					KalaMakeCore::CloseOnError(
-						"KALAMAKE",
-						"No build type was passed!");
 				}
 				if (globalData.targetProfile.buildPath.empty())
 				{
@@ -630,6 +628,10 @@ namespace KalaMake::Core
 				else if (c == CompilerType::C_JAVA)
 				{
 					LanguageCore::Compile_Java(globalData);
+				}
+				else if (c == CompilerType::C_PYTHON)
+				{
+					LanguageCore::Compile_Python(globalData);
 				}
 			};
 

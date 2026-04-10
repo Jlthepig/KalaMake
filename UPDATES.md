@@ -30,8 +30,11 @@
 
 - added new compiler: zig
 - added export-vscode-sln generation support for zig
-- added missing export-vscode-sln generation support for java
+- added new compiler: python (requires pyinstaller)
 - added new custom flag export-java-sln for java - this creates both .classpath and .project
+- added new compiler: python
+- added new custom flag python-one-file
+- fixed msvc-static-runtime not being blocked in Java, also blocked it in Zig and Python
 - add lib in front of .so and .a for zig and c/cpp if missing in binary name
 - compile and link flags are allowed to use quotes
 - can use variables with just $ at their start and with no brackets (example: $ORIGIN) as long as they dont contain a starting curly bracket

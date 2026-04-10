@@ -248,9 +248,13 @@ Available values:
 - package-jar - optional post-jar task to also package the created jar file into an executable
 - java-win-console - print java executable logs to console on windows
 - export-java-sln - creates a .classpath and .project file in project root
+- python-one-file - creates a single file output instead of the default dir, slower to launch because it extracts each time the exe is ran
 
-Export-compile-commands is not supported in Java and Zig.
-Package-jar, java-win-console and export-java-sln are not supported in C, C++ and Zig.
+Export-compile-commands is not supported in Java, Zig and Python.
+Warnings-as-errors is not supported in Zig and Python.
+Msvc-static-runtime is not supported in Java, Zig and Python.
+Package-jar, java-win-console and export-java-sln are not supported in C, C++, Zig and Python.
+python-one-file is not supported in C, C++, Java and Zig.
     
 ### prebuildaction
 

@@ -162,12 +162,26 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+	//
+	// ENSURE REQUIRED FIELDS ARE NOT MISSING
+	//
+
     if (globalData.targetProfile.standard == StandardType::S_INVALID)
     {
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_C_CPP",
 			"Field 'standard' must be assigned in C and C++!");
     }
+	if (globalData.targetProfile.buildType == BuildType::B_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Field 'buildtype' must be assigned in C and C++!");
+    }
+
+    //
+    // ENSURE UNSUPPORTED FIELDS ARE NOT USED
+    //
 
 	if (ContainsValue(
 		globalData.targetProfile.customFlags, 
@@ -192,6 +206,14 @@ void PreCheck(GlobalData& globalData)
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_C_CPP",
 			"Custom flag 'export-java-sln' is not supported in C and C++!");
+	}
+	if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_PYTHON_ONE_FILE))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_C_CPP",
+			"Custom flag 'python-one-file' is not supported in C and C++!");
 	}
 
 	//

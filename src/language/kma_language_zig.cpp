@@ -107,6 +107,17 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+	//
+	// ENSURE REQUIRED FIELDS ARE NOT MISSING
+	//
+
+	if (globalData.targetProfile.buildType == BuildType::B_INVALID)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_ZIG",
+			"Field 'buildtype' must be assigned in Zig!");
+    }
+
     //
     // ENSURE UNSUPPORTED FIELDS ARE NOT USED
     //
@@ -156,20 +167,28 @@ void PreCheck(GlobalData& globalData)
     }
 
 	if (ContainsValue(
-			globalData.targetProfile.customFlags, 
-			CustomFlag::F_EXPORT_COMPILE_COMMANDS))
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_EXPORT_COMPILE_COMMANDS))
 	{
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_ZIG",
 			"Custom flag 'export-compile-commands' is not supported in Zig!");
 	}
 	if (ContainsValue(
-			globalData.targetProfile.customFlags, 
-			CustomFlag::F_WARNINGS_AS_ERRORS))
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_WARNINGS_AS_ERRORS))
 	{
         KalaMakeCore::CloseOnError(
 			"LANGUAGE_ZIG",
 			"Custom flag 'warnings-as-errors' is not supported in Zig!");
+	}
+    if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_MSVC_STATIC_RUNTIME))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_ZIG",
+			"Custom flag 'msvc-static-runtime' is not supported in Zig!");
 	}
 	if (ContainsValue(
 		globalData.targetProfile.customFlags, 
@@ -195,10 +214,48 @@ void PreCheck(GlobalData& globalData)
 			"LANGUAGE_ZIG",
 			"Custom flag 'export-java-sln' is not supported in Zig!");
 	}
+	if (ContainsValue(
+		globalData.targetProfile.customFlags, 
+		CustomFlag::F_PYTHON_ONE_FILE))
+	{
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_ZIG",
+			"Custom flag 'python-one-file' is not supported in Zig!");
+	}
 
     //
 	// FILTER OUT BAD SOURCE FILES 
 	//
+
+	for (const auto& p : globalData.targetProfile.sources)
+	{
+		if ((p.stem() == "main"
+			|| p.stem() == "root"))
+		{
+			if (!mainZig.empty())
+			{
+                KalaMakeCore::CloseOnError(
+				    "LANGUAGE_ZIG",
+				    "Cannot have more than one main Zig script! Please ensure you only have one main.zig or root.zig script, and not both.");
+			}
+
+            if (is_empty(p))
+            {
+                KalaMakeCore::CloseOnError(
+				    "LANGUAGE_ZIG",
+				    "Main Zig script was empty!");
+            }
+
+            mainZig = p;
+		}
+	}
+
+    if (mainZig.empty())
+    {
+        KalaMakeCore::CloseOnError(
+            "LANGUAGE_ZIG",
+            "Did not find main Zig script! Please ensure main.zig or root.zig is added to sources.");
+    }
 
 	auto should_exclude = [](const path& target) -> bool
 		{
@@ -223,8 +280,6 @@ void PreCheck(GlobalData& globalData)
 	vector<path>& sources = globalData.targetProfile.sources;
 	vector<path> exclusions{};
 	vector<path> finalSources{};
-
-	bool foundMain{};
 
 	for (const auto& target : sources)
 	{
@@ -297,20 +352,6 @@ void PreCheck(GlobalData& globalData)
 			continue;
 		}
 
-		if (target.stem() == "main"
-			|| target.stem() == "root")
-		{
-            if (foundMain)
-			{
-				KalaMakeCore::CloseOnError(
-					"LANGUAGE_ZIG",
-					"Cannot have more than one main Zig script! Make sure more than one or both main.zig and root.zig don't exist.");
-			}
-
-			foundMain = true;
-			mainZig = target;
-		}
-
 		finalSources.push_back(target);
 	}
 
@@ -319,13 +360,6 @@ void PreCheck(GlobalData& globalData)
 		KalaMakeCore::CloseOnError(
 			"LANGUAGE_ZIG",
 			"No sources were remaining after cleaning source scripts list!");
-	}
-
-	if (!foundMain)
-	{
-		KalaMakeCore::CloseOnError(
-			"LANGUAGE_ZIG",
-			"Did not find main Zig script! There must be one script named main.zig or root.zig.");
 	}
 
 	if (foundInvalid) 
@@ -656,7 +690,7 @@ void Compile_Final(const GlobalData& globalData)
             else
             {
 				Log::Print(
-					"Skipping linking of output '" + outputPath.string() + "' because there are no new source or link files.",
+					"Skipping compiling to output '" + outputPath.string() + "' because there are no new source files.",
 					"LANGUAGE_ZIG",
 					LogType::LOG_INFO);
             }
