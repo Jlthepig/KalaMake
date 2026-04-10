@@ -138,8 +138,8 @@ namespace KalaMake::Core
 
                 ostringstream out{};
 
-                string srcDir = javaData.srcDir;
-                string outputDir = javaData.outputDir;
+                string srcDir = javaData.srcDir.string();
+                string outputDir = javaData.outputDir.string();
 
                 auto fix_slashes = [](string_view input) -> string
                     {
