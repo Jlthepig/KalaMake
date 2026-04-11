@@ -6,6 +6,8 @@ To run KalaMake you must first have a `.kmake` manifest file in your project roo
 
 To compile with KalaMake all you need is to launch KalaMake manually and type `--compile yourproject.kmake yourprofile` or directly type `kalamake --compile yourproject.kmake yourprofile` into your console. Read below for more details.
 
+Look at the `testing/*` folders to check an example of how to compile each language.
+
 ## Introduction
 
 KalaMake is a standalone tool for building software and libraries from source code. It can replace tools such as CMake, Premake, Make or Ninja when you want a lightweight but fast and easy-to-use build script and CLI combination without relying on external build tools, generators or additional setup.
@@ -82,10 +84,10 @@ Describes which binary type to build as. Only one value is allowed.
 
 Available values:
 - executable - creates an executable
-- static - creates a static .lib (.a on linux)
-- shared - creates a shared dll + inline .lib (.so on linux)
+- static - creates a static library
+- shared - creates a shared library
 
-Static and shared are not supported in Java.
+Static and shared are not supported in Java and Python.
     
 ### compilerlauncher
 
@@ -97,7 +99,7 @@ Available values:
 - distcc - sends compile jobs to other servers
 - icecc - same as distcc but ships compiler toolchain too
 
-Compiler launcher is not supported in Java and Zig.
+Compiler launcher is not supported in Java, Zig, Python and Rust.
     
 ### compiler
 
@@ -142,7 +144,7 @@ Available values:
 - rust21
 - rust24
 
-Standard is not supported in Zig.
+Standard is not supported in Zig and Python.
     
 ### targettype
 
@@ -153,19 +155,19 @@ Available values:
 - linux-gnu - create a linux binary on windows or linux (uses glibc)
 - linux-musl - create a linux binary on windows or linux (uses musl)
 
-Target type is not supported in Java.
+Target type is not supported in Java and Python.
     
 ### jobs
 
 Describes how many jobs to use for the compilation pass. More jobs = more parallel threads for each source script. It is recommended to have up to 2x as many jobs as you have logical cores available on your cpu, limited from 1 to 65535. Only one value is allowed.
 
-Jobs are not supported in Java and Zig.
+Jobs are not supported in Java, Zig, Python and Rust.
 
 ### binaryname
 
 Give a name for what your binary will be called. Extension is not needed. Only one value is allowed.
 
-C/C++ and Zig always add lib in front of their binary name on Linux if its missing.
+C/C++, Zig and Rust always add lib in front of their binary name on Linux if its missing.
 
 ### buildtype
 
@@ -178,6 +180,8 @@ Available values:
 - minsizerel - release output, optimizes for size
 
 Release, reldebug and minsizerel are the same in Java.
+
+Build type is not supported in Python.
     
 ### buildpath
 
@@ -198,20 +202,15 @@ sources: "!myfile.cpp"
 
 Describes what headers this binary will use. Supports quoted relative and full paths to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`. Can add multiple values.
 
-Headers are not supported in Java and Zig.
+Headers are not supported in Java, Zig, Python and Rust.
 
 ### links
 
-Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, individual files are not allowed, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. `-l` and `.lib` are added in front of the link internally to system library paths. Can add multiple values.
-
-Links support exclusion with the `!` symbol in front of the file or dir name, globbed paths do not support exclusion.
+Describes what libraries this binary will link to. Supports quoted relative and full paths files and to folders, supports recursive and non-recursive globbing with `*` and `**`, supports system library paths if added without quotes and extension. Can add multiple values.
 
 Java only supports one directory value in the links field. Use it as the directory where your jar libraries are that you wish to include during jpackage phase.
 
-```
-//exclude a library
-links: "!mylink.lib"
-```
+Links are not supported in Zig, Python and Rust.
 
 ### warninglevel
 
@@ -225,13 +224,15 @@ Available values:
 - strict - very strict, high signal warnings
 - all - all warnings
 
-Warning level is not supported in Java and Zig.
+Warning level is not supported in Java, Zig, Python and Rust.
     
 ### defines
 
 Describes what defines to pass to the compiler. `-D` and `/D` are added in front of the define internally. Can add multiple values.
 
-Defines are used as module values in Java, like for example `defines: javafx.base`. Defines are not supported in Zig.
+Defines are used as module values in Java, like for example `defines: javafx.base`.
+
+Defines are not supported in Zig and Python.
 
 ### compileflags
 
@@ -241,7 +242,7 @@ Describes what flags will be added during the compile stage. `-` and `/` are add
 
 Describes what flags will be added during the link stage. `-` and `/` are added in front of the flag internally. Can add multiple values.
 
-Link flags are not supported in Java and Zig.
+Link flags are not supported in Java, Zig, Python and Rust.
 
 ### customflags
 
@@ -256,14 +257,12 @@ Available values:
 - java-win-console - print java executable logs to console on windows
 - export-java-sln - creates a .classpath and .project file in project root
 - python-one-file - creates a single file output instead of the default dir, slower to launch because it extracts each time the exe is ran
-- rust-c-static - uses staticlib instead of rlib
 
 Export-compile-commands is not supported in Java, Zig and Python.
 Warnings-as-errors is not supported in Zig and Python.
 Msvc-static-runtime is not supported in Java, Zig and Python.
 Package-jar, java-win-console and export-java-sln are not supported in C, C++, Zig and Python.
 Python-one-file is not supported in C, C++, Java and Zig.
-Rust-c-static is not supported in C, C++, Java, Zig and Python.
     
 ### prebuildaction
 
@@ -292,61 +291,4 @@ binaryname: myexe
 buildtype: release
 buildpath: "build"
 sources: "src/main.cpp"
-```
-
-Full KalaMake project
-
-```
-//Build script for use with kalamake. Read more at https://github.com/kalakit/kalamake
-
-#version 1.0
-
-#references
-name_bin: kalamake
-dir_release: build/release-
-dir_debug: build/debug-
-name_kc: kalacli
-dir_kc_rel: _external_shared/KalaCLI/release
-dir_kc_deb: _external_shared/KalaCLI/debug
-comm_objcopy: objcopy --remove-section .note.gnu.property
-
-#global
-compilerlauncher: ccache
-standard: c++20
-binarytype: executable
-binaryname: ${name_bin}
-sources: "src"
-headers: "include", "_external_shared/KalaHeaders", "_external_shared/KalaCLI/include"
-defines: LIB_STATIC
-warninglevel: normal
-customflags: export-compile-commands, export-vscode-sln
-
-#profile debug-windows
-compiler: clang-cl
-buildtype: debug
-buildpath: "${dir_debug}windows"
-links: "${dir_kc_deb}/${name_kc}d.lib"
-
-#profile release-windows
-compiler: clang-cl
-buildtype: minsizerel
-buildpath: "${dir_release}windows"
-links: "${dir_kc_rel}/${name_kc}.lib"
-
-#profile debug-linux
-compiler: clang++
-buildtype: debug
-buildpath: "${dir_debug}linux"
-links: "${dir_kc_deb}/lib${name_kc}d.a"
-//strips stupid avx requirements that cachyos seems to add for no reason
-postbuildaction: ${comm_objcopy} ${dir_debug}linux/${name_bin}
-
-#profile release-linux
-compiler: clang++
-buildtype: minsizerel
-buildpath: "${dir_release}linux"
-links: "${dir_kc_rel}/lib${name_kc}.a"
-//strips stupid avx requirements that cachyos seems to add for no reason
-postbuildaction: ${comm_objcopy} ${dir_release}linux/${name_bin}
-postbuildaction: strip --strip-unneeded ${dir_release}linux/${name_bin}
 ```

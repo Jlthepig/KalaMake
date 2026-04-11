@@ -1,0 +1,34 @@
+#version 1.0
+
+#global
+compiler: rust
+standard: rust24
+sources: "src/lib"
+
+//---------------------------
+// STATIC RUST LIB
+//---------------------------
+
+#profile test-sta-release
+binaryname: test_sta
+binarytype: static
+buildtype: release
+buildpath: "build/sta-release"
+
+#profile test-sta-debug
+binaryname: test_stad
+binarytype: static
+buildtype: debug
+buildpath: "build/sta-debug"
+
+#profile test-sta-reldebug
+binaryname: test_sta
+binarytype: static
+buildtype: reldebug
+buildpath: "build/sta-reldebug"
+
+#profile test-sta-minsizerel
+binaryname: test_sta
+binarytype: static
+buildtype: minsizerel
+buildpath: "build/sta-minsizerel"

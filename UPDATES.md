@@ -35,9 +35,9 @@
 - added new compiler: python
 - added new custom flag python-one-file
 - added new compiler: rust
-- added new custom flag rust-c-static
 - fixed msvc-static-runtime not being blocked in Java, also blocked it in Zig, Python and Rust
 - add lib in front of .so and .a for zig and c/cpp if missing in binary name
 - compile and link flags are allowed to use quotes
 - can use variables with just $ at their start and with no brackets (example: $ORIGIN) as long as they dont contain a starting curly bracket
 - fixed global profile creating a nameless task and launch profile for export-vscode-sln
+- added missing standard check for C/C++ and Java

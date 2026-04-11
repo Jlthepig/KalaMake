@@ -480,11 +480,12 @@ namespace KalaMake::Core
 		{ StandardType::JAVA_23, standard_java23 },
 		{ StandardType::JAVA_24, standard_java24 },
 		{ StandardType::JAVA_25, standard_java25 },
+		{ StandardType::JAVA_26, standard_java26 },
 
-		{ StandardType::RUST_15, standard_rust15 },
-		{ StandardType::RUST_18, standard_rust18 },
-		{ StandardType::RUST_21, standard_rust21 },
-		{ StandardType::RUST_24, standard_rust24 }
+		{ StandardType::RUST_15,     standard_rust15 },
+		{ StandardType::RUST_18,     standard_rust18 },
+		{ StandardType::RUST_21,     standard_rust21 },
+		{ StandardType::RUST_24,     standard_rust24 }
 	};
 
 	static const unordered_map<TargetType, string_view, EnumHash<TargetType>> targetTypes =
@@ -648,6 +649,10 @@ namespace KalaMake::Core
 				else if (c == CompilerType::C_PYTHON)
 				{
 					LanguageCore::Compile_Python(globalData);
+				}
+				else if (c == CompilerType::C_RUST)
+				{
+					LanguageCore::Compile_Rust(globalData);
 				}
 			};
 

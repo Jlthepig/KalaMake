@@ -1,0 +1,33 @@
+#version 1.0
+
+#global
+binaryname: zig-test
+binarytype: executable
+compiler: zig
+sources: "src"
+compileflags: -rpath \$ORIGIN
+customflags: export-vscode-sln
+
+#profile zig-release
+buildtype: release
+buildpath: "build/exe_release"
+links: "build/static_release/libstatic-test.a", "build/shared_release/libshared-test.so"
+prebuildaction: cp -f build/shared_release/libshared-test.so build/exe_release/libshared-test.so
+
+#profile zig-minsizerel
+buildtype: minsizerel
+buildpath: "build/exe_minsizerel"
+links: "build/static_minsizerel/libstatic-test.a", "build/shared_minsizerel/libshared-test.so"
+prebuildaction: cp -f build/shared_minsizerel/libshared-test.so build/exe_minsizerel/libshared-test.so
+
+#profile zig-debug
+buildtype: debug
+buildpath: "build/exe_debug"
+links: "build/static_debug/libstatic-testd.a", "build/shared_debug/libshared-testd.so"
+prebuildaction: cp -f build/shared_debug/libshared-testd.so build/exe_debug/libshared-testd.so
+
+#profile zig-reldebug
+buildtype: reldebug
+buildpath: "build/exe_reldebug"
+links: "build/static_reldebug/libstatic-test.a", "build/shared_reldebug/libshared-test.so"
+prebuildaction: cp -f build/shared_reldebug/libshared-test.so build/exe_reldebug/libshared-test.so

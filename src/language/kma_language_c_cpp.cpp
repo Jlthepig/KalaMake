@@ -605,6 +605,13 @@ void Compile_Final(const GlobalData& globalData)
 			string_view standard{};
 			EnumToString(globalData.targetProfile.standard, KalaMakeCore::GetStandardTypes(), standard);
 
+            if (!standard.starts_with("c"))
+            {
+				KalaMakeCore::CloseOnError(
+					"LANGUAGE_C_CPP",
+					"Unsupported standard type '" + string(standard) + "' was passed to C/C++ compiler!");
+            }
+
 			string standardArg = isMSVC
 				? frontArg + "std:"
 				: frontArg + "std=";

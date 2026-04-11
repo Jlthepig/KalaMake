@@ -73,10 +73,10 @@ namespace KalaMake::Core
 		//supported by all languages
 		T_COMPILER = 3u,
 		//which language standard is used to compile this source code,
-		//only for C, C++ and Java
+		//only for C, C++, Java and Rust
 		T_STANDARD = 4u,
 		//what is the target platform of the binary,
-		//only for C and C++
+		//only for C, C++, Zig and Rust
 		T_TARGET_TYPE = 5u,
 		//how many jobs are allowed to do in parallel for compilation,
 		//only for C and C++
@@ -86,7 +86,7 @@ namespace KalaMake::Core
 		//supported by all languages
 		T_BINARY_NAME = 7u,
 		//which build type is the binary,
-		//only for C, C++, Java and Zig
+		//only for C, C++, Java, Zig and Rust
 		T_BUILD_TYPE = 8u,
 		//where is the binary built to,
 		//supported by all languages
@@ -104,7 +104,7 @@ namespace KalaMake::Core
 		//only for C and C++
 		T_WARNING_LEVEL = 13u,
 		//what defines will be added to the binary,
-		//only for C and C++
+		//only for C, C++, Java (modules) and Rust (--cfg)
 		T_DEFINES = 14u,
 		//what flags will be passed to the compiler stage,
 		//supported by all languages
@@ -133,14 +133,12 @@ namespace KalaMake::Core
 		//creates a runnable executable
 		B_EXECUTABLE = 1u,
 
-		//creates a linkable .lib on MSVC,
-		//creates a linkable .a on GNU,
-		//not used in python
+		//creates a static library,
+		//not used in Java and Python
 		B_STATIC = 2u,
 
-		//creates a .dll and a linkable .lib on MSVC,
-		//creates a .so on GNU, same as runtime-only,
-		//not used in python
+		//creates a shared library,
+		//not used in Java and Python
 		B_SHARED = 3u
 	};
 
@@ -201,7 +199,7 @@ namespace KalaMake::Core
 	};
 
 	//Allowed standard types that can be added to the standard field,
-	//only for C, C++ and Java
+	//only for C, C++, Java and Rust
 	enum class StandardType : u8
 	{
 		S_INVALID = 0u,
@@ -259,8 +257,8 @@ namespace KalaMake::Core
 		RUST_24 = 44u
 	};
 
-	//Allowed target types in C and C++ that can be added to the targettype field,
-	//only for C and C++
+	//Allowed target types that can be added to the targettype field,
+	//only for C, C++, Zig and Rust
 	enum class TargetType : u8
 	{
 		T_INVALID = 0u,
@@ -276,7 +274,7 @@ namespace KalaMake::Core
 	};
 
 	//Allowed build types that can be added to the buildtype field,
-	//only for C, C++ and Java
+	//only for C, C++, Java and Rust
 	enum class BuildType : u8
 	{
 		B_INVALID = 0u,
@@ -357,11 +355,7 @@ namespace KalaMake::Core
 		//pyinstaller bundles everything into a single exe, all files are extracted at each run,
 		//otherwise it creates a dir with all content with faster startup.
 		//only for Python
-		F_PYTHON_ONE_FILE = 8u,
-
-		//switches --crate-type from bin to staticlib, only goes into effect if build type is also static,
-		//only for Rust
-		F_RUST_C_STATIC = 9u
+		F_PYTHON_ONE_FILE = 8u
 	};
 	
 	struct ProfileData
@@ -379,10 +373,10 @@ namespace KalaMake::Core
 		//supported by all languages
 		CompilerType compiler{};
 		//which language standard is used to compile this source code,
-		//only for C, C++ and Java
+		//only for C, C++, Java and Zig
 		StandardType standard{};
 		//what is the target platform of the binary,
-		//only for C and C++
+		//only for C, C++, Zig and Rust
 		TargetType targetType{};
 		//how many parallel compilation jobs are allowed,
 		//only for C and C++
@@ -392,7 +386,7 @@ namespace KalaMake::Core
 		//supported by all languages
 		string binaryName{};
 		//which build type is the binary,
-		//only for C, C++ and Java
+		//only for C, C++, Java and Rust
 		BuildType buildType{};
 		//where is the binary built to,
 		//supported by all languages
@@ -410,10 +404,10 @@ namespace KalaMake::Core
 		//only for C and C++
 		WarningLevel warningLevel;
 		//what defines will be added to the binary,
-		//only for C and C++
+		//only for C, C++, Java (modules) and Rust (--cfg)
 		vector<string> defines{};
 		//what flags will be passed to the compiler stage,
-		//only for C, C++ and Java
+		//supported by all languages
 		vector<string> compileFlags{};
 		//what flags will be passed to the link stage,
 		//only for C and C++

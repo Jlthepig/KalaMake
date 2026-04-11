@@ -1,0 +1,73 @@
+#version 1.0
+
+#references
+name-shared: libtest_sha
+dir-shared: build/sha-
+name-static: libtest_sta
+dir-static: build/sta-
+
+#global
+binaryname: test_exe
+binarytype: executable
+compiler: rust
+standard: rust24
+
+//---------------------------
+// EXECUTABLE WITH SHARED LIB
+//---------------------------
+
+#profile test-exe-sha-release
+buildtype: release
+buildpath: "build/exe-sha-release"
+sources: "src/exe/shared"
+links: "${dir-shared}release/${name-shared}.so"
+postbuildaction: cp -f ${dir-shared}release/${name-shared}.so build/exe-sha-release/${name-shared}.so
+
+#profile test-exe-sha-debug
+buildtype: debug
+buildpath: "build/exe-sha-debug"
+sources: "src/exe/shared"
+links: "${dir-shared}debug/${name-shared}d.so"
+postbuildaction: cp -f ${dir-shared}debug/${name-shared}d.so build/exe-sha-debug/${name-shared}d.so
+
+#profile test-exe-sha-reldebug
+buildtype: reldebug
+buildpath: "build/exe-sha-reldebug"
+sources: "src/exe/shared"
+links: "${dir-shared}reldebug/${name-shared}.so"
+postbuildaction: cp -f ${dir-shared}reldebug/${name-shared}.so build/exe-sha-reldebug/${name-shared}.so
+
+#profile test-exe-sha-minsizerel
+buildtype: minsizerel
+buildpath: "build/exe-sha-minsizerel"
+sources: "src/exe/shared"
+links: "${dir-shared}minsizerel/${name-shared}.so"
+postbuildaction: cp -f ${dir-shared}minsizerel/${name-shared}.so build/exe-sha-minsizerel/${name-shared}.so
+
+//---------------------------
+// EXECUTABLE WITH STATIC LIB
+//---------------------------
+
+#profile test-exe-sta-release
+buildtype: release
+buildpath: "build/exe-sta-release"
+sources: "src/exe/static"
+links: "${dir-static}release/${name-static}.rlib"
+
+#profile test-exe-sta-debug
+buildtype: debug
+buildpath: "build/exe-sta-debug"
+sources: "src/exe/static"
+links: "${dir-static}debug/${name-static}d.rlib"
+
+#profile test-exe-sta-reldebug
+buildtype: reldebug
+buildpath: "build/exe-sta-reldebug"
+sources: "src/exe/static"
+links: "${dir-static}reldebug/${name-static}.rlib"
+
+#profile test-exe-sta-minsizerel
+buildtype: minsizerel
+buildpath: "build/exe-sta-minsizerel"
+sources: "src/exe/static"
+links: "${dir-static}minsizerel/${name-static}.rlib"

@@ -541,8 +541,9 @@ void Compile_Final(const GlobalData& globalData)
 
             for (const auto& l : globalData.targetProfile.links)
             {
-                if (exists(l)) command += " \"" + path(l).string() + "\"";
-                else             command += " -l" + path(l).string();
+                command += (path(l).has_extension())
+					? " -L\"" + path(l).string() + "\""
+                    : " -l" + path(l).string();
             }
 
             //set output data

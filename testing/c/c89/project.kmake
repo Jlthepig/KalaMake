@@ -1,0 +1,11 @@
+#version 1.0
+
+#global
+compiler: clang
+standard: c89
+binaryname: c89-test
+binarytype: executable
+buildtype: release
+buildpath: "build"
+sources: "src"
+customflags: export-vscode-sln, export-compile-commands

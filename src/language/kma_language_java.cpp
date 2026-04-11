@@ -519,6 +519,13 @@ void Compile_Final(const GlobalData& globalData)
 			string_view standard{};
 			EnumToString(globalData.targetProfile.standard, KalaMakeCore::GetStandardTypes(), standard);
 
+            if (!standard.starts_with("java"))
+            {
+				KalaMakeCore::CloseOnError(
+					"LANGUAGE_JAVA",
+					"Unsupported standard type '" + string(standard) + "' was passed to Java compiler!");
+            }
+
 			command += "--release " + string(standard).erase(0, 4);
 
 			//set module path
