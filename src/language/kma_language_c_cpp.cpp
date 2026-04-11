@@ -1135,7 +1135,7 @@ void Compile_Final(const GlobalData& globalData)
 			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
 			{
 #ifdef __linux__
-				command += " -Wl,-rpath,$ORIGIN";
+				command += " -Wl,-rpath,\\$ORIGIN";
 #endif
 
 				if ((isOnLinux

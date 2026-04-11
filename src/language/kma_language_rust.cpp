@@ -724,8 +724,9 @@ void Compile_Final(const GlobalData& globalData)
                     if (isWindowsTarget) start = start.substr(3);
                     string end = isWindowsTarget
                         ? ".dll"
-                        : ".a";
+                        : ".so";
 
+                    bool foundTargetFile{};
                     path originPath = originDir;
                     for (const auto& f : directory_iterator(originDir))
                     {
@@ -734,14 +735,17 @@ void Compile_Final(const GlobalData& globalData)
                             && fpath.ends_with(end))
                         {
                             originPath = originPath / fpath;
-                        }
-                    }                    
 
-                    if (!exists(originPath))
+                            foundTargetFile = true;
+                            break;
+                        }
+                    }                
+
+                    if (!foundTargetFile)
                     {
                         KalaMakeCore::CloseOnError(
 						    "LANGUAGE_RUST",
-						    "Failed to find Rust std library at path '" + originPath.string() + "'!");
+						    "Failed to find Rust std library at path '" + originDir.string() + "'!");
                     }
 
                     string front = originPath.filename().string();
