@@ -6,7 +6,6 @@ binarytype: executable
 buildtype: release
 compiler: rust
 sources: "src/basic"
-compileflags: -C prefer-dynamic
 
 #profile 2015
 standard: rust15

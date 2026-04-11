@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include "log_utils.hpp"
+#include "file_utils.hpp"
 
 #include "language/kma_language.hpp"
 #include "core/kma_core.hpp"
@@ -20,6 +21,8 @@ using KalaHeaders::KalaCore::RemoveDuplicates;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
+
+using KalaHeaders::KalaFile::CopyPath;
 
 using KalaMake::Core::KalaMakeCore;
 using KalaMake::Language::GlobalData;
@@ -44,14 +47,24 @@ using std::filesystem::file_time_type;
 using std::filesystem::last_write_time;
 using std::filesystem::is_empty;
 using std::filesystem::is_directory;
+using std::filesystem::directory_iterator;
 using std::ifstream;
 
-// rust + linux-gnu
+//rust + linux-gnu
 constexpr string_view target_type_rust_linux_gnu = "x86_64-unknown-linux-gnu";
-// rust + linux-musl
+//rust + linux-musl
 constexpr string_view target_type_rust_linux_musl = "x86_64-unknown-linux-musl";
-// rust + windows-gnu
+//rust + windows-gnu
 constexpr string_view target_type_rust_windows_gnu = "x86_64-pc-windows-gnu";
+
+//win msvc std folder
+static const path win_msvc_std_dir = path("lib") / "rustlib" / "x86_64-pc-windows-msvc" / "lib";
+//win gnu std folder
+static const path win_gnu_std_dir = path("lib") / "rustlib" / "x86_64-pc-windows-gnu" / "lib";
+//linux gnu std folder
+static const path linux_gnu_std_dir = path("lib") / "rustlib" / "x86_64-unknown-linux-gnu" / "lib";
+//linux musl std folder
+static const path linux_musl_std_dir = path("lib") / "rustlib" / "x86_64-unknown-linux-musl" / "lib";
 
 static path mainRust{};
 
@@ -582,7 +595,10 @@ void Compile_Final(const GlobalData& globalData)
                 {
                     path lpath = l;
                     path lpathDir = lpath.parent_path();
-                    string lpathName = lpath.stem();
+                    string lpathName = lpath.stem().string();
+
+                    //trim off remaining suffix because rust likes to do .dll.lib on Windows
+                    if (lpathName.ends_with(".dll")) lpathName = lpathName.substr(0, lpathName.size() - 4);
 
                     if (lpathName.starts_with("lib")) lpathName = lpathName.substr(3);
 
@@ -601,13 +617,152 @@ void Compile_Final(const GlobalData& globalData)
                     for (const auto& l : globalData.targetProfile.links)
                     {
                         if (l.string().ends_with(".so")
-                            || l.string().ends_with(".lib"))
+                            || l.string().ends_with(".dll"))
                         {
                             return true;
                         }
                     }
 
                     return false;
+                };
+
+            auto copy_std_dll = [&globalData](const path& targetDir) -> void
+                {
+                    string origin{};
+
+#ifdef _WIN32
+                    FILE* pipe = _popen("rustc --print sysroot", "r");
+#else
+                    FILE* pipe = popen("rustc --print sysroot", "r");
+#endif
+                    if (pipe)
+                    {
+                        char buffer[256]{};
+                        while (fgets(buffer, sizeof(buffer), pipe)) origin += buffer;
+#ifdef _WIN32
+                        _pclose(pipe);
+#else
+                        pclose(pipe);
+#endif
+                        if (!origin.empty()
+                            && origin.back() == '\n')
+                        {
+                            origin.pop_back();
+                        }
+                        else if (origin.empty())
+                        {
+                            KalaMakeCore::CloseOnError(
+                                "LANGUAGE_RUST",
+                                "Failed to get Rust sysroot path from pipe!");
+                        }
+                    }
+                    else
+                    {
+                        KalaMakeCore::CloseOnError(
+						    "LANGUAGE_RUST",
+						    "Failed to open pipe to get Rust sysroot path!");
+                    }
+
+                    path originDir = path(origin);
+
+                    if (!exists(originDir))
+                    {
+                        KalaMakeCore::CloseOnError(
+						    "LANGUAGE_RUST",
+						    "Failed to find Rust std library sysroot folder at path '" + originDir.string() + "'!");
+                    }
+
+                    switch (globalData.targetProfile.targetType)
+                    {
+                    case TargetType::T_INVALID:
+                    {
+#ifdef _WIN32
+                        originDir = originDir / win_msvc_std_dir;
+#else
+                        originDir = originDir / linux_gnu_std_dir;
+#endif
+                        break;
+                    }
+                    case TargetType::T_LINUX_GNU:
+                    {
+                        originDir = originDir / linux_gnu_std_dir;
+                        break;
+                    }
+                    case TargetType::T_LINUX_MUSL:
+                    {
+                        originDir = originDir / linux_musl_std_dir;
+                        break;
+                    }
+                    case TargetType::T_WINDOWS_GNU:
+                    {
+                        originDir = originDir / win_gnu_std_dir;
+                        break;
+                    }
+                    default: break;
+                    }
+
+                    if (!exists(originDir))
+                    {
+                        KalaMakeCore::CloseOnError(
+						    "LANGUAGE_RUST",
+						    "Failed to find Rust std library folder at path '" + originDir.string() + "'!");
+                    }
+
+                    bool isWindows = 
+#ifdef _WIN32
+                        true;
+#else
+                        false;
+#endif
+
+                    bool isWindowsTarget = 
+                        globalData.targetProfile.targetType == 
+                            (TargetType::T_INVALID)
+                            && isWindows;
+
+                    string start = "libstd-";
+                    if (isWindowsTarget) start = start.substr(3);
+                    string end = isWindowsTarget
+                        ? ".dll"
+                        : ".a";
+
+                    path originPath = originDir;
+                    for (const auto& f : directory_iterator(originDir))
+                    {
+                        string fpath = path(f).filename().string();
+                        if (fpath.starts_with(start)
+                            && fpath.ends_with(end))
+                        {
+                            originPath = originPath / fpath;
+                        }
+                    }                    
+
+                    if (!exists(originPath))
+                    {
+                        KalaMakeCore::CloseOnError(
+						    "LANGUAGE_RUST",
+						    "Failed to find Rust std library at path '" + originPath.string() + "'!");
+                    }
+
+                    string front = originPath.filename().string();
+                    path targetPath = targetDir / front;
+
+                    if (!exists(targetPath))
+                    {
+                        string err = CopyPath(originPath, targetDir / front);
+
+                        if (!err.empty())
+                        {
+                            KalaMakeCore::CloseOnError(
+                                "LANGUAGE_RUST",
+                                "Failed to copy Rust std library to user build dir! Reason: " + err);
+                        }
+
+                        Log::Print(
+                            "Copied std library from '" + originPath.string() + "' to target '" + (targetDir / front).string() + "'.",
+                            "LANGUAGE_RUST",
+                            LogType::LOG_INFO);
+                    }
                 };
 
             path outputPath = globalData.targetProfile.buildPath;
@@ -619,8 +774,12 @@ void Compile_Final(const GlobalData& globalData)
             {
                 if (has_shared_lib())
                 {
+#ifdef __linux__
                     command += " -C rpath";
+#endif
                     command += " -C prefer-dynamic";
+
+                    copy_std_dll(outputPath);
                 }
 
 #ifdef _WIN32
@@ -630,11 +789,6 @@ void Compile_Final(const GlobalData& globalData)
             }
             case BinaryType::B_SHARED:
             {
-                if (has_shared_lib())
-                {
-                    command += " -C rpath";
-                }
-
                 command += " -C prefer-dynamic";
 
                 if (!appendedValue.starts_with("lib")) appendedValue = "lib" + appendedValue;

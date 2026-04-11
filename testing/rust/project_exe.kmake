@@ -2,9 +2,9 @@
 
 #references
 name-shared: libtest_sha
-dir-shared: build/sha-
+dir-shared: build\sha-
 name-static: libtest_sta
-dir-static: build/sta-
+dir-static: build\sta-
 
 #global
 binaryname: test_exe
@@ -20,8 +20,16 @@ standard: rust24
 buildtype: release
 buildpath: "build/exe-sha-release"
 sources: "src/exe/shared"
-links: "${dir-shared}release/${name-shared}.so"
-postbuildaction: cp -f ${dir-shared}release/${name-shared}.so build/exe-sha-release/${name-shared}.so
+
+//windows version
+links: "${dir-shared}release/${name-shared}.dll"
+//linux version
+//links: "${dir-shared}release/${name-shared}.so"
+
+//windows version
+postbuildaction: copy /Y ${dir-shared}release\${name-shared}.dll build\exe-sha-release\${name-shared}.dll
+//linux version
+//postbuildaction: cp -f ${dir-shared}release/${name-shared}.so build/exe-sha-release/${name-shared}.so
 
 #profile test-exe-sha-debug
 buildtype: debug

@@ -1134,6 +1134,10 @@ void Compile_Final(const GlobalData& globalData)
 			string extension{};
 			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
 			{
+#ifdef __linux__
+				command += " -Wl,-rpath,$ORIGIN";
+#endif
+
 				if ((isOnLinux
 					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
