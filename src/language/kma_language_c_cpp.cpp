@@ -109,9 +109,7 @@ static void PreCheck(GlobalData& globalData);
 
 static void Compile_Final(const GlobalData& globalData);
 
-static void GenerateSteps(
-	bool isMSVC,
-	const GlobalData& globalData)
+static void GenerateSteps(const GlobalData& globalData)
 {
 	bool canGenerateCompComm = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_COMPILE_COMMANDS);
 	bool canGenerateVSCodeSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_VSCODE_SLN);
@@ -880,7 +878,6 @@ void Compile_Final(const GlobalData& globalData)
 				};
 
 			auto generate = [
-				&isMSVC,
 				&globalData,
 				&buildPath,
 				&extension,
@@ -914,7 +911,7 @@ void Compile_Final(const GlobalData& globalData)
 						}
 					}
 
-					GenerateSteps(isMSVC, globalData);
+					GenerateSteps(globalData);
 				};
 
 			auto compile = [
