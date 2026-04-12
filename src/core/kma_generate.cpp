@@ -29,11 +29,16 @@ using std::ostringstream;
 using std::filesystem::current_path;
 using std::filesystem::exists;
 
+static bool isWindows = 
+#ifdef _WIN32
+    true;
+#else
+    false;
+#endif
+
 namespace KalaMake::Core
 {
-    void Generate::GenerateCompileCommands(
-        bool isMSVC,
-        const vector<CompileCommand>& commands)
+    void Generate::GenerateCompileCommands(const vector<CompileCommand>& commands)
     {
 		path compComm = current_path() / "compile_commands.json";
 
@@ -58,12 +63,12 @@ namespace KalaMake::Core
 
 		out << "[\n";
 
-        auto fix_slashes = [&isMSVC](string_view input) -> string
+        auto fix_slashes = [](string_view input) -> string
 			{
                 return ReplaceFromString(
                     string(input), 
                     "\\", 
-                    (isMSVC ? "\\\\" : "/"), 
+                    (isWindows ? "\\\\" : "/"), 
                     true);
 			};
 
@@ -244,7 +249,6 @@ namespace KalaMake::Core
     }
 
     void Generate::GenerateVSCodeSolution(
-        bool isMSVC,
         bool isExe,
         const VSCode_Launch& launch,
         const VSCode_Task& task)
@@ -262,12 +266,12 @@ namespace KalaMake::Core
             }
         }
 
-        auto fix_slashes = [&isMSVC](string_view input) -> string
+        auto fix_slashes = [](string_view input) -> string
 			{
                 return ReplaceFromString(
                     string(input), 
                     "\\", 
-                    (isMSVC ? "\\\\" : "/"), 
+                    (isWindows ? "\\\\" : "/"), 
                     true);
 			};
 
@@ -423,7 +427,11 @@ namespace KalaMake::Core
                     "Failed to update existing launch.json at '" + launchJson.string() + "' because it was malformed!");
             }
 
-            string program = fix_slashes(launch.program + (isMSVC ? ".exe" : ""));
+            string program = launch.type == "debugpy"
+                ? launch.program
+                : launch.program + (isWindows ? ".exe" : "");
+                
+            program = fix_slashes(program);
 
             vector<string> newProfileLines{
                 "        {",
@@ -440,7 +448,8 @@ namespace KalaMake::Core
 
             if (launch.type == "cppvsdbg"
                 || launch.type == "cppdbg"
-                || launch.type == "lldb")
+                || launch.type == "lldb"
+                || launch.type == "debugpy")
             {
                 newProfileLines.push_back("            \"program\": \"" + program + "\",");
                 newProfileLines.push_back("            \"args\": [],");

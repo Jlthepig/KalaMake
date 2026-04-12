@@ -4,29 +4,21 @@
 binaryname: test_exe
 binarytype: executable
 buildtype: release
-compiler: rust
+compiler: zig
 sources: "src/basic"
 customflags: export-vscode-sln
 
-#profile 2015
-standard: rust15
-buildpath: "build/exe-basic-2015"
-
-#profile 2024
-standard: rust24
-buildpath: "build/exe-basic-2024"
+#profile current
+buildpath: "build/exe-basic-current"
 
 #profile linux-gnu
-standard: rust24
 buildpath: "build/exe-basic-linux-gnu"
 targettype: linux-gnu
 
 #profile linux-musl
-standard: rust24
 buildpath: "build/exe-basic-linux-musl"
 targettype: linux-musl
 
 #profile windows-gnu
-standard: rust24
 buildpath: "build/exe-basic-windows-gnu"
 targettype: windows-gnu

@@ -59,15 +59,12 @@ namespace KalaMake::Core
     {
     public:
         //Exports compile_commands.json
-        static void GenerateCompileCommands(
-            bool isMSVC,
-            const vector<CompileCommand>& commands);
+        static void GenerateCompileCommands(const vector<CompileCommand>& commands);
 
         static void GenerateJavaClassPath(const JavaClassPath& javaData);
 
         //Updates existing launch.json and tasks.json or makes new ones
         static void GenerateVSCodeSolution(
-            bool isMSVC,
             bool isExe,
             const VSCode_Launch& launch,
             const VSCode_Task& task);

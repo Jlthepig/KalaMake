@@ -5,6 +5,7 @@ binaryname: py-test
 binarytype: executable
 compiler: python
 sources: "src"
+customflags: export-vscode-sln
 
 #profile py-one-file
 buildpath: "build/py_one_file"

@@ -72,13 +72,6 @@ static void Compile_Final(const GlobalData& globalData);
 
 static void GenerateSteps(const GlobalData& globalData)
 {
-	bool isMSVC =
-#ifdef _WIN32
-		true;
-#else
-		false;
-#endif
-
 	bool canGenerateExportSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_JAVA_SLN);
 	bool canGenerateVSCodeSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_VSCODE_SLN);
 
@@ -127,7 +120,6 @@ static void GenerateSteps(const GlobalData& globalData)
 		};
 
 		Generate::GenerateVSCodeSolution(
-			isMSVC,
 			globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE,
 			launch,
 			task);
@@ -603,15 +595,23 @@ void Compile_Final(const GlobalData& globalData)
 
 			bool isAnyNewer{};
 
-			for (const auto& j : globalData.targetProfile.sources)
+			if (is_empty(classDir))
 			{
-				for (const auto& c : recursive_directory_iterator(classDir))
+				isAnyNewer = true;
+			}
+
+			if (!isAnyNewer)
+			{
+				for (const auto& j : globalData.targetProfile.sources)
 				{
-					if (last_write_time(j) > last_write_time(c)
-						|| kmakeTime > last_write_time(c))
+					for (const auto& c : recursive_directory_iterator(classDir))
 					{
-						isAnyNewer = true;
-						break;
+						if (last_write_time(j) > last_write_time(c)
+							|| kmakeTime > last_write_time(c))
+						{
+							isAnyNewer = true;
+							break;
+						}
 					}
 				}
 			}

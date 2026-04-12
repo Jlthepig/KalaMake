@@ -74,13 +74,6 @@ static void Compile_Final(const GlobalData& globalData);
 
 static void GenerateSteps(const GlobalData& globalData)
 {
-	bool isMSVC =
-#ifdef _WIN32
-		true;
-#else
-		false;
-#endif
-
 	bool canGenerateVSCodeSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_VSCODE_SLN);
 
 	if (canGenerateVSCodeSln)
@@ -91,7 +84,7 @@ static void GenerateSteps(const GlobalData& globalData)
 		VSCode_Launch launch
 		{
 			.name = globalData.targetProfile.profileName,
-			.type = "java",
+			.type = "lldb",
 			.program = "${workspaceFolder}/" + programPath.string()
 		};
 
@@ -102,7 +95,6 @@ static void GenerateSteps(const GlobalData& globalData)
 		};
 
 		Generate::GenerateVSCodeSolution(
-			isMSVC,
 			globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE,
 			launch,
 			task);
@@ -125,6 +117,22 @@ namespace KalaMake::Language
 
 void PreCheck(GlobalData& globalData)
 {
+#ifdef _WIN32
+    if (globalData.targetProfile.targetType == TargetType::T_LINUX_GNU)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_RUST",
+			"Target type 'linux-gnu' is not supported for Rust on Windows! Use 'linux-musl' instead.");
+    }
+#else
+    if (globalData.targetProfile.targetType == TargetType::T_WINDOWS_GNU)
+    {
+        KalaMakeCore::CloseOnError(
+			"LANGUAGE_RUST",
+			"Target type 'windows-gnu' is not supported for Rust on Linux!");
+    }
+#endif
+
 	//
 	// ENSURE REQUIRED FIELDS ARE NOT MISSING
 	//
@@ -568,11 +576,13 @@ void Compile_Final(const GlobalData& globalData)
             case TargetType::T_LINUX_GNU:
             {
                 command += " --target " + string(target_type_rust_linux_gnu);
+                command += " -C linker=lld";
                 break;
             }
             case TargetType::T_LINUX_MUSL:
             {
                 command += " --target " + string(target_type_rust_linux_musl);
+                command += " -C linker=lld";
                 break;
             }
             case TargetType::T_WINDOWS_GNU:
@@ -769,53 +779,70 @@ void Compile_Final(const GlobalData& globalData)
                     }
                 };
 
-            path outputPath = globalData.targetProfile.buildPath;
+            path buildPath = globalData.targetProfile.buildPath;
+            string binaryName = globalData.targetProfile.binaryName;
 
-            string appendedValue = globalData.targetProfile.binaryName;
+			bool isOnLinux{};
+#ifdef __linux__
+			isOnLinux = true;
+#endif
+
+            string extension{};
             switch (globalData.targetProfile.binaryType)
             {
             case BinaryType::B_EXECUTABLE:
             {
                 if (has_shared_lib())
                 {
-#ifdef __linux__
-                    command += " -C link-arg=-Wl,-rpath,\\$ORIGIN";
-#endif
+                    if (isOnLinux) command += " -C link-arg=-Wl,-rpath,\\$ORIGIN";
                     command += " -C prefer-dynamic";
 
-                    copy_std_dll(outputPath);
+                    copy_std_dll(buildPath);
                 }
 
-#ifdef _WIN32
-                appendedValue = appendedValue + ".exe";
-#endif
+                if ((isOnLinux
+                    && globalData.targetProfile.targetType == TargetType::T_INVALID)
+                    || globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
+                    || globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
+                {
+                    
+                    if (binaryName.ends_with(".exe")) binaryName.resize(binaryName.size() - 4);
+                }
+                else
+                {
+                    if (!binaryName.ends_with(".exe")) extension = ".exe";
+                }
+
                 break;
             }
             case BinaryType::B_SHARED:
             {
                 command += " -C prefer-dynamic";
 
-                if (!appendedValue.starts_with("lib")) appendedValue = "lib" + appendedValue;
-
-#ifdef _WIN32
-                appendedValue = appendedValue + ".dll";
-#else
-                appendedValue = appendedValue + ".so";
-#endif
+				if ((isOnLinux
+					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
+					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
+					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
+				{
+					if (!binaryName.ends_with(".so")) extension = ".so";
+				}
+				else
+				{
+					if (!binaryName.ends_with(".dll")) extension = ".dll";
+				}
 
                 break;
             }
             case BinaryType::B_STATIC:
             {
-                if (!appendedValue.starts_with("lib")) appendedValue = "lib" + appendedValue;
-
-                appendedValue = appendedValue + ".rlib";
+                if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
+                if (!binaryName.ends_with(".rlib")) extension = ".rlib";
                 break;
             }
             default: break;
             }
 
-            outputPath = outputPath / appendedValue;
+            path outputPath = path(buildPath / string(binaryName + extension));
 
             command += " -o \"" + outputPath.string() + "\"";
 

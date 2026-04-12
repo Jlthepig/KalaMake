@@ -28,6 +28,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::CreateNewDirectory;
+using KalaHeaders::KalaFile::RenamePath;
 
 using KalaHeaders::KalaThread::lockwait_m;
 using KalaHeaders::KalaThread::unlock_m;
@@ -61,6 +62,7 @@ using std::filesystem::is_regular_file;
 using std::filesystem::is_directory;
 using std::filesystem::last_write_time;
 using std::filesystem::file_time_type;
+using std::filesystem::directory_iterator;
 using std::filesystem::recursive_directory_iterator;
 using std::min;
 using std::atomic;
@@ -69,6 +71,13 @@ using std::mutex;
 using std::ostringstream;
 
 using u16 = uint16_t;
+
+static bool isWindows = 
+#ifdef _WIN32
+    true;
+#else
+    false;
+#endif
 
 constexpr string_view objFolderName = "obj";
 
@@ -111,9 +120,7 @@ static void GenerateSteps(
 	{
 		path projectFileDir = globalData.projectFile.parent_path();
 
-		Generate::GenerateCompileCommands(
-			isMSVC,
-			commands);
+		Generate::GenerateCompileCommands(commands);
 
 		if (canGenerateVSCodeSln) Log::Print(" ");
 	}
@@ -125,7 +132,7 @@ static void GenerateSteps(
 		VSCode_Launch launch
 		{
 			.name = globalData.targetProfile.profileName,
-			.type = isMSVC ? "cppvsdbg" : "cppdbg",
+			.type = isWindows ? "cppvsdbg" : "cppdbg",
 			.program = "${workspaceFolder}/" + programPath.string()
 		};
 
@@ -136,7 +143,6 @@ static void GenerateSteps(
 		};
 
 		Generate::GenerateVSCodeSolution(
-			isMSVC,
 			globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE,
 			launch,
 			task);
@@ -300,9 +306,7 @@ void PreCheck(GlobalData& globalData)
 		|| standard == StandardType::C_23;
 
 	bool isCPPLanguage =
-		standard == StandardType::CPP_03
-		|| standard == StandardType::CPP_11
-		|| standard == StandardType::CPP_14
+		standard == StandardType::CPP_14
 		|| standard == StandardType::CPP_17
 		|| standard == StandardType::CPP_20
 		|| standard == StandardType::CPP_23
@@ -567,11 +571,9 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::C_17
 					|| standardType == StandardType::C_23)
 				{
-					command += " c";
+					command += " cc";
 				}
-				else if (standardType == StandardType::CPP_03
-					|| standardType == StandardType::CPP_11
-					|| standardType == StandardType::CPP_14
+				else if (standardType == StandardType::CPP_14
 					|| standardType == StandardType::CPP_17
 					|| standardType == StandardType::CPP_20
 					|| standardType == StandardType::CPP_23
@@ -827,6 +829,7 @@ void Compile_Final(const GlobalData& globalData)
 
 			//compile-time shared flag for object file
 			if (!isMSVC
+				&& !isWindows
 				&& globalData.targetProfile.binaryType == BinaryType::B_SHARED)
 			{
 				command += " -fPIC";
@@ -1068,11 +1071,9 @@ void Compile_Final(const GlobalData& globalData)
 					|| standardType == StandardType::C_17
 					|| standardType == StandardType::C_23)
 				{
-					command += " c";
+					command += " cc";
 				}
-				else if (standardType == StandardType::CPP_03
-					|| standardType == StandardType::CPP_11
-					|| standardType == StandardType::CPP_14
+				else if (standardType == StandardType::CPP_14
 					|| standardType == StandardType::CPP_17
 					|| standardType == StandardType::CPP_20
 					|| standardType == StandardType::CPP_23
@@ -1120,25 +1121,18 @@ void Compile_Final(const GlobalData& globalData)
 			}
 			else
 			{
-				if (isMSVC) outputArg = "/OUT:";
+				if (compiler == "lib") outputArg = "/OUT:";
 			}
 
 			path buildPath = globalData.targetProfile.buildPath;
 			string binaryName = globalData.targetProfile.binaryName;
 
-			bool isOnLinux{};
-#ifdef __linux__
-			isOnLinux = true;
-#endif
-
 			string extension{};
 			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
 			{
-#ifdef __linux__
-				command += " -Wl,-rpath,\\$ORIGIN";
-#endif
+				if (!isWindows) command += " -Wl,-rpath,\\$ORIGIN";
 
-				if ((isOnLinux
+				if ((!isWindows
 					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
@@ -1153,29 +1147,34 @@ void Compile_Final(const GlobalData& globalData)
 			}
 			else if (globalData.targetProfile.binaryType == BinaryType::B_SHARED)
 			{
-				if ((isOnLinux
+				if ((!isWindows
 					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
 				{
 					if (!binaryName.ends_with(".so")) extension = ".so";
-					if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{
 					if (!binaryName.ends_with(".dll")) extension = ".dll";
 				}
+
+				if (isWindows
+					&& (globalData.targetProfile.compiler == CompilerType::C_GCC
+					|| globalData.targetProfile.compiler == CompilerType::C_GPP))
+				{
+					command += " -Wl,--out-implib," + (buildPath / (binaryName + ".lib")).string();
+				}
 			}
 			else if (globalData.targetProfile.binaryType == BinaryType::B_STATIC)
 			{
-				if ((isOnLinux
+				if ((!isWindows
 					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL
 					|| globalData.targetProfile.targetType == TargetType::T_WINDOWS_GNU)
 				{
 					if (!binaryName.ends_with(".a")) extension = ".a";
-					if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{
@@ -1288,6 +1287,26 @@ void Compile_Final(const GlobalData& globalData)
 					KalaMakeCore::CloseOnError(
 						"LANGUAGE_C_CPP",
 						"Failed to link '" + outputPath.string() + "'!");
+				}
+
+				if (isWindows
+					&& globalData.targetProfile.binaryType == BinaryType::B_SHARED
+					&& globalData.targetProfile.compiler == CompilerType::C_ZIG)
+				{
+					for (auto& f : directory_iterator(globalData.targetProfile.buildPath))
+					{
+						path file = path(f);
+						if (file.extension() == ".lib")
+						{
+							string err = RenamePath(file, globalData.targetProfile.binaryName + ".lib");
+							if (!err.empty())
+							{
+								KalaMakeCore::CloseOnError(
+									"LANGUAGE_C_CPP",
+									"Failed to rename Zig-created lib! Reason: " + err);
+							}
+						}
+					}
 				}
 
 				Log::Print(

@@ -1,10 +1,12 @@
-#include <string_view>
+#pragma once
+
+#include <string>
 #include <iostream>
 
 using std::cout;
-using std::string_view;
+using std::string;
 
-inline void print(string_view message)
+inline void print(const string& message)
 {
     cout << message << "\n";
 }

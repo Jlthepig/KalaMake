@@ -56,13 +56,6 @@ static void Compile_Final(const GlobalData& globalData);
 
 static void GenerateSteps(const GlobalData& globalData)
 {
-	bool isMSVC =
-#ifdef _WIN32
-		true;
-#else
-		false;
-#endif
-
 	bool canGenerateVSCodeSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_VSCODE_SLN);
 
 	if (canGenerateVSCodeSln)
@@ -84,7 +77,6 @@ static void GenerateSteps(const GlobalData& globalData)
 		};
 
 		Generate::GenerateVSCodeSolution(
-			isMSVC,
 			globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE,
 			launch,
 			task);
@@ -541,9 +533,23 @@ void Compile_Final(const GlobalData& globalData)
 
             for (const auto& l : globalData.targetProfile.links)
             {
-                command += (path(l).has_extension())
-					? " -L\"" + path(l).string() + "\""
-                    : " -l" + path(l).string();
+				if (!path(l).has_extension())
+				{
+					command += " -l" + l.string();
+				}
+				else
+				{
+					path lpath = l;
+					path lpathDir = lpath.parent_path();
+					string lpathName = lpath.stem().string();
+
+					//trim off remaining suffix because rust likes to do .dll.lib on Windows
+                    //if (lpathName.ends_with(".dll")) lpathName = lpathName.substr(0, lpathName.size() - 4);
+
+                    if (lpathName.starts_with("lib")) lpathName = lpathName.substr(3);
+
+					command += " -L\"" + lpathDir.string() + "\" -l" + lpathName;
+				}
             }
 
             //set output data
@@ -559,6 +565,8 @@ void Compile_Final(const GlobalData& globalData)
             string extension{};
 			if (globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE)
 			{
+				if (isOnLinux) command += " -rpath \\$ORIGIN";
+
 				if ((isOnLinux
 					&& globalData.targetProfile.targetType == TargetType::T_INVALID)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_GNU
@@ -580,7 +588,6 @@ void Compile_Final(const GlobalData& globalData)
 					|| globalData.targetProfile.targetType == TargetType::T_LINUX_MUSL)
 				{
 					if (!binaryName.ends_with(".so")) extension = ".so";
-                    if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{
@@ -596,7 +603,6 @@ void Compile_Final(const GlobalData& globalData)
 					|| globalData.targetProfile.targetType == TargetType::T_WINDOWS_GNU)
 				{
 					if (!binaryName.ends_with(".a")) extension = ".a";
-                    if (!binaryName.starts_with("lib")) binaryName = "lib" + binaryName;
 				}
 				else
 				{
@@ -610,47 +616,37 @@ void Compile_Final(const GlobalData& globalData)
 
             command += " -femit-bin=\"" + outputPath.string() + "\"";
 
-            //compile
+#ifdef _WIN32
+			if (globalData.targetProfile.binaryType == BinaryType::B_SHARED)
+			{
+				path libOutputPath = path(buildPath / string(binaryName + ".lib"));
+				command += " -femit-implib=\"" + libOutputPath.string() + "\"";
+			}
+#endif
 
-            file_time_type kmakeTime = last_write_time(globalData.projectFile);
+            //compile
 
             bool isAnyNewer{};
 
-            for (const auto& s : globalData.targetProfile.sources)
-            {
-                if (kmakeTime > last_write_time(s))
-                {
-                    isAnyNewer = true;
-                    break;
-                }
-            }
+            file_time_type kmakeTime = last_write_time(globalData.projectFile);
 
-            if (!isAnyNewer)
-            {
-                for (const auto& l : globalData.targetProfile.links)
-                {
-                    if (exists(l)
-                        && kmakeTime > last_write_time(l))
-                    {
-                        isAnyNewer = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!isAnyNewer
-                && exists(outputPath))
+            if (exists(outputPath))
             {
                 file_time_type outputWriteTime = last_write_time(outputPath);
 
-                for (const auto& s : globalData.targetProfile.sources)
-                {
-                    if (outputWriteTime < last_write_time(s))
-                    {
-                        isAnyNewer = true;
-                        break;
-                    }
-                }
+				if (kmakeTime > outputWriteTime) isAnyNewer = true;
+
+				if (!isAnyNewer)
+				{
+					for (const auto& s : globalData.targetProfile.sources)
+					{
+						if (outputWriteTime < last_write_time(s))
+						{
+							isAnyNewer = true;
+							break;
+						}
+					}
+				}
 
                 if (!isAnyNewer)
                 {

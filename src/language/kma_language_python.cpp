@@ -55,25 +55,15 @@ static void Compile_Final(const GlobalData& globalData);
 
 static void GenerateSteps(const GlobalData& globalData)
 {
-	bool isMSVC =
-#ifdef _WIN32
-		true;
-#else
-		false;
-#endif
-
     bool canGenerateVSCodeSln = ContainsValue(globalData.targetProfile.customFlags, CustomFlag::F_EXPORT_VSCODE_SLN);
 
 	if (canGenerateVSCodeSln)
 	{
-		path relativeBuildPath = relative(globalData.targetProfile.buildPath, current_path());
-		path programPath = relativeBuildPath / globalData.targetProfile.binaryName;
-
 		VSCode_Launch launch
 		{
 			.name = globalData.targetProfile.profileName,
-			.type = "python",
-			.program = "${workspaceFolder}/" + programPath.string()
+			.type = "debugpy",
+			.program = "${workspaceFolder}/" + relative(mainPython, current_path()).string()
 		};
 
 		VSCode_Task task
@@ -83,7 +73,6 @@ static void GenerateSteps(const GlobalData& globalData)
 		};
 
 		Generate::GenerateVSCodeSolution(
-			isMSVC,
 			globalData.targetProfile.binaryType == BinaryType::B_EXECUTABLE,
 			launch,
 			task);

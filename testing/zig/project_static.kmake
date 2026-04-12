@@ -1,12 +1,11 @@
 #version 1.0
 
 #global
-compiler: rust
-standard: rust24
+binarytype: static
+compiler: zig
 sources: "src/lib"
 
 #profile test-sta-release
 binaryname: test_sta
-binarytype: static
 buildtype: release
 buildpath: "build/sta-release"

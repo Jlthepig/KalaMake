@@ -139,9 +139,6 @@ constexpr string_view standard_c99    = "c99";
 constexpr string_view standard_c11    = "c11";
 constexpr string_view standard_c17    = "c17";
 constexpr string_view standard_c23    = "c23";
-constexpr string_view standard_cpp98  = "c++98";
-constexpr string_view standard_cpp03  = "c++03";
-constexpr string_view standard_cpp11  = "c++11";
 constexpr string_view standard_cpp14  = "c++14";
 constexpr string_view standard_cpp17  = "c++17";
 constexpr string_view standard_cpp20  = "c++20";
@@ -453,9 +450,6 @@ namespace KalaMake::Core
 		{ StandardType::C_17, standard_c17 },
 		{ StandardType::C_23, standard_c23 },
 
-		{ StandardType::CPP_98, standard_cpp98 },
-		{ StandardType::CPP_03, standard_cpp03 },
-		{ StandardType::CPP_11, standard_cpp11 },
 		{ StandardType::CPP_14, standard_cpp14 },
 		{ StandardType::CPP_17, standard_cpp17 },
 		{ StandardType::CPP_20, standard_cpp20 },

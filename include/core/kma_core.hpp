@@ -214,47 +214,44 @@ namespace KalaMake::Core
 		C_17 = 4u,
 		C_23 = 5u,
 
-		CPP_98 = 7u,
-		CPP_03 = 8u,
-		CPP_11 = 9u,
-		CPP_14 = 10u,
-		CPP_17 = 11u,
-		CPP_20 = 12u,
-		CPP_23 = 13u,
-		CPP_26 = 14u,
+		CPP_14 = 6u,
+		CPP_17 = 7u,
+		CPP_20 = 8u,
+		CPP_23 = 9u,
+		CPP_26 = 10u,
 
 		//
 		// JAVA
 		//
 
-		JAVA_8  = 22u,
-		JAVA_9  = 23u,
-		JAVA_10 = 24u,
-		JAVA_11 = 25u,
-		JAVA_12 = 26u,
-		JAVA_13 = 27u,
-		JAVA_14 = 28u,
-		JAVA_15 = 29u,
-		JAVA_16 = 30u,
-		JAVA_17 = 31u,
-		JAVA_18 = 32u,
-		JAVA_19 = 33u,
-		JAVA_20 = 34u,
-		JAVA_21 = 35u,
-		JAVA_22 = 36u,
-		JAVA_23 = 37u,
-		JAVA_24 = 38u,
-		JAVA_25 = 39u,
-		JAVA_26 = 40u,
+		JAVA_8  = 11u,
+		JAVA_9  = 12u,
+		JAVA_10 = 13u,
+		JAVA_11 = 14u,
+		JAVA_12 = 15u,
+		JAVA_13 = 16u,
+		JAVA_14 = 17u,
+		JAVA_15 = 18u,
+		JAVA_16 = 19u,
+		JAVA_17 = 20u,
+		JAVA_18 = 21u,
+		JAVA_19 = 22u,
+		JAVA_20 = 23u,
+		JAVA_21 = 24u,
+		JAVA_22 = 25u,
+		JAVA_23 = 26u,
+		JAVA_24 = 27u,
+		JAVA_25 = 28u,
+		JAVA_26 = 29u,
 
 		//
 		// RUST
 		//
 
-		RUST_15 = 41u,
-		RUST_18 = 42u,
-		RUST_21 = 43u,
-		RUST_24 = 44u
+		RUST_15 = 30u,
+		RUST_18 = 31u,
+		RUST_21 = 32u,
+		RUST_24 = 33u
 	};
 
 	//Allowed target types that can be added to the targettype field,
