@@ -9,7 +9,7 @@ This project relies on several [external dependencies](https://github.com/greeen
 ## Supported languages
 
 - C (89 to 23)
-- C++ (98 to 26)
+- C++ (14 to 26)
 - Java (8 to 26)
 - Zig (the language)
 - Python (Requires PyInstaller)
