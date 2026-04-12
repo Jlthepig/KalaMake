@@ -24,12 +24,12 @@ sources: "src/exe/shared"
 //windows version
 //links: "${dir-shared}release/${name-shared}.dll"
 //linux version
-links: "${dir-shared}release/${name-shared}.so"
+//links: "${dir-shared}release/${name-shared}.so"
 
 //windows version
 //postbuildaction: copy /Y ${dir-shared}release\${name-shared}.dll build\exe-sha-release\${name-shared}.dll
 //linux version
-postbuildaction: cp -f ${dir-shared}release/${name-shared}.so build/exe-sha-release/${name-shared}.so
+//postbuildaction: cp -f ${dir-shared}release/${name-shared}.so build/exe-sha-release/${name-shared}.so
 
 #profile test-exe-sha-debug
 buildtype: debug
